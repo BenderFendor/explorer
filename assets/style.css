@@ -204,3 +204,18 @@ input { font-family: inherit; font-size: inherit; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 .no-motion *, .no-motion *::before, .no-motion *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Pinned places and on-demand Quick Access. Hover and click both reveal contents. */
+.side-heading { display: flex; align-items: center; justify-content: space-between; padding: 6px 26px; font-size: 15px; font-weight: 600; }
+.side-action { cursor: pointer; color: var(--muted); padding: 0 5px; }
+.side-action:hover { color: var(--text); }
+.place { display: flex; align-items: center; gap: 5px; }
+.place-title { min-width: 0; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.place-remove { visibility: hidden; cursor: pointer; color: var(--muted); padding-left: 7px; }
+.place:hover .place-remove { visibility: visible; }
+.place-remove:hover { color: var(--error); }
+.quick-toggle { cursor: pointer; color: var(--muted); font-weight: 500; }
+.quick-toggle:hover { color: var(--text); }
+.quick-items { display: none; flex-direction: column; }
+.quick-access:hover .quick-items, .quick-items.expanded { display: flex; }
+.side-subheading { font-size: 11px; padding: 8px 26px 4px 38px; letter-spacing: .035em; color: var(--muted); }

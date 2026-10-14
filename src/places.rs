@@ -1,4 +1,4 @@
-use crate::filesystem::home;
+use crate::{filesystem::home, history};
 use std::{fs, path::PathBuf};
 
 #[derive(Clone, PartialEq)]
@@ -22,6 +22,8 @@ pub struct Places {
     pub home: Option<Place>,
     pub folders: Vec<Place>,
     pub bookmarks: Vec<Place>,
+    pub frequent: Vec<Place>,
+    pub recent: Vec<Place>,
     pub devices: Vec<Place>,
 }
 
@@ -54,23 +56,17 @@ pub fn load() -> Places {
     let bookmarks = fs::read_to_string(config.join("gtk-3.0/bookmarks"))
         .map(|text| parse_bookmarks(&text))
         .unwrap_or_default();
-    // Thunar lists bookmarks separately, but the reference sidebar shows each folder once.
     let devices = parse_mounts(&fs::read_to_string("/proc/self/mounts").unwrap_or_default());
-    let listed = |path: &PathBuf| {
-        *path == home
-            || folders
-                .iter()
-                .chain(&devices)
-                .any(|known| known.path == *path)
-    };
-    let bookmarks = bookmarks
-        .into_iter()
-        .filter(|place| !listed(&place.path))
-        .collect();
+    let frequent = history::frequent(5).into_iter()
+        .map(|visit| Place::new(name_of(&visit.path), visit.path)).collect();
+    let recent = history::recent(false, 5).into_iter()
+        .map(|visit| Place::new(name_of(&visit.path), visit.path)).collect();
     Places {
         home: Some(Place::new(user, home)),
         folders,
         bookmarks,
+        frequent,
+        recent,
         devices,
     }
 }
@@ -149,5 +145,51 @@ mod tests {
         );
         let names: Vec<_> = places.iter().map(|place| place.name.as_str()).collect();
         assert_eq!(names, ["Big storage", "USB"]);
+    }
+}
+
+/// The standard GTK3 bookmarks file shared with Thunar.
+pub fn bookmarks_path() -> PathBuf {
+    directories::BaseDirs::new()
+        .map(|dirs| dirs.config_dir().to_path_buf())
+        .unwrap_or_else(|| home().join(".config"))
+        .join("gtk-3.0/bookmarks")
+}
+
+pub fn pin(path: &std::path::Path) -> Result<(), String> {
+    if !path.is_dir() { return Err("Only existing folders can be pinned".into()); }
+    let file = bookmarks_path();
+    let existing = fs::read_to_string(&file).unwrap_or_default();
+    if parse_bookmarks(&existing).iter().any(|item| item.path == path) { return Ok(()); }
+    let uri = url::Url::from_file_path(path).map_err(|_| "Invalid bookmark path")?;
+    let mut next = existing;
+    if !next.is_empty() && !next.ends_with('\n') { next.push('\n'); }
+    next.push_str(uri.as_str());
+    next.push('\n');
+    write_bookmarks(&file, &next)
+}
+
+pub fn unpin(path: &std::path::Path) -> Result<(), String> {
+    let file = bookmarks_path();
+    let existing = fs::read_to_string(&file).map_err(|e| e.to_string())?;
+    let next = existing.lines().filter(|line| {
+        parse_bookmarks(line).first().is_none_or(|place| place.path != path)
+    }).collect::<Vec<_>>().join("\n");
+    write_bookmarks(&file, &(next + "\n"))
+}
+
+fn write_bookmarks(path: &std::path::Path, content: &str) -> Result<(), String> {
+    fs::create_dir_all(path.parent().ok_or("Missing bookmark directory")?).map_err(|e| e.to_string())?;
+    let temp = path.with_extension("bookmarks.tmp");
+    fs::write(&temp, content).map_err(|e| e.to_string())?;
+    fs::rename(temp, path).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod pin_tests {
+    use super::*;
+    #[test]
+    fn gtk_pins_preserve_display_labels() {
+        assert_eq!(parse_bookmarks("file:///tmp/Pictures Inspiration\n")[0].name, "Inspiration");
     }
 }
