@@ -39,7 +39,8 @@ pub fn list(path:&Path)->Vec<App>{
                 }
                 seen.insert(id.clone());
                 if supported && !hidden {
-                    apps.push(App{id,name:name.unwrap_or_else(||id.clone()),desktop:file});
+                    let title=name.unwrap_or_else(||id.clone());
+                    apps.push(App{id,name:title,desktop:file});
                 }
             }
         }
