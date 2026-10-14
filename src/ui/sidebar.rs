@@ -135,7 +135,7 @@ fn PlaceLink(
 
 #[component]
 fn DeviceLink(device:crate::devices::Device,refresh:Signal<Places>)->Element {
-    let mut state=use_context::<Explorer>();
+    let state=use_context::<Explorer>();
     let mut refresh=refresh;
     let block=device.block.clone();
     let block_action=device.block.clone();
