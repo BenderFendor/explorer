@@ -211,7 +211,11 @@ mod tests {
         }
         std::fs::create_dir(fixture.0.join("other.png")).unwrap();
         let entries = read_directory(&fixture.0).unwrap().entries;
-        let images: Vec<_> = entries.iter().filter(|entry| is_image(entry)).map(|entry| entry.name.clone()).collect();
+        let images: Vec<_> = entries
+            .iter()
+            .filter(|entry| is_image(entry))
+            .map(|entry| entry.name.clone())
+            .collect();
         assert_eq!(images, ["frame.jpg", "sketch.png"]);
     }
 

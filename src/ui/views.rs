@@ -108,7 +108,11 @@ fn Item(
     let state = use_context::<Explorer>();
     let class = format!(
         "item {}{}{}{}{}",
-        match view { View::Grid => "card", View::Gallery => "gallery-card", _ => "row" },
+        match view {
+            View::Grid => "card",
+            View::Gallery => "gallery-card",
+            _ => "row",
+        },
         if cursor { " cursor" } else { "" },
         if marked { " marked" } else { "" },
         if cut { " cut" } else { "" },
@@ -119,7 +123,9 @@ fn Item(
     let name = filesystem::shorten(&entry.name, limit);
     let caption = if view == View::Gallery {
         crate::image_metadata::load(&entry.path).caption
-    } else { String::new() };
+    } else {
+        String::new()
+    };
     rsx! {
         div { class, title: "{entry.name}",
             onclick: move |event| click(state, index, path.clone(), event),
@@ -251,7 +257,11 @@ fn Thumbnails() -> Element {
     });
     // Grid art is 128 px wide at zoom 1; a zoom change swaps the flavor.
     let flavor = use_memo(move || {
-        let size = if (state.view)() == View::Gallery { 212.0 } else { 128.0 };
+        let size = if (state.view)() == View::Gallery {
+            212.0
+        } else {
+            128.0
+        };
         Flavor::covering(size * (state.zoom)())
     });
     use_effect(move || {
@@ -314,7 +324,9 @@ fn GalleryFocus() -> Element {
     };
     let count = entries.len();
     let slots = ((state.layout().width / 88.0).floor() as usize).clamp(3, 9);
-    let start = index.saturating_sub(slots / 2).min(count.saturating_sub(slots));
+    let start = index
+        .saturating_sub(slots / 2)
+        .min(count.saturating_sub(slots));
     let strip: Vec<_> = entries
         .iter()
         .enumerate()

@@ -33,17 +33,25 @@ fn navigate(state: Explorer, command: &Command) -> bool {
                 state.layout().columns as isize
             };
             state.move_by(delta * stride);
-        },
+        }
         Command::Step(delta) => step(state, *delta),
         Command::Top => state.set_cursor(0),
         Command::Bottom => state.set_cursor(count.saturating_sub(1)),
         Command::Page(fraction) => page(state, *fraction),
         Command::Parent => state.parent(),
         Command::Left => {
-            if (state.view)() == View::Gallery { state.move_by(-1) } else { state.parent() }
+            if (state.view)() == View::Gallery {
+                state.move_by(-1)
+            } else {
+                state.parent()
+            }
         }
         Command::Right => {
-            if (state.view)() == View::Gallery { state.move_by(1) } else { open(state) }
+            if (state.view)() == View::Gallery {
+                state.move_by(1)
+            } else {
+                open(state)
+            }
         }
         Command::Open => open(state),
         Command::Back => state.history(false),
@@ -88,14 +96,19 @@ fn places(mut state: Explorer, command: &Command) -> bool {
             }
         }
         Command::ClearHistory => {
-            report(state, crate::history::clear().map_err(|err| err.to_string()));
+            report(
+                state,
+                crate::history::clear().map_err(|err| err.to_string()),
+            );
         }
         Command::SetBookmark(key) => {
             let current = state.current();
             state.bookmarks.write().insert(*key, current);
             if let Err(error) = crate::prefs::save_key_bookmarks(&state.bookmarks.read()) {
                 state.notify(format!("Bookmark save failed: {error}"), true);
-            } else { state.notify(format!("Bookmark {key} set"), false); }
+            } else {
+                state.notify(format!("Bookmark {key} set"), false);
+            }
         }
         Command::Bookmark(key) => jump(state, *key),
         Command::EditPath => state.editing_path.set(true),
@@ -229,13 +242,16 @@ fn files(mut state: Explorer, command: &Command) -> bool {
         Command::EditMetadata(field, value) => {
             if let Some(entry) = state.cursor_entry().filter(crate::thumbnails::is_image) {
                 match crate::image_metadata::update(&entry.path, field, value) {
-                    Ok(()) => { state.revision += 1; state.notify("Image metadata saved", false); }
+                    Ok(()) => {
+                        state.revision += 1;
+                        state.notify("Image metadata saved", false);
+                    }
                     Err(error) => state.notify(error.to_string(), true),
                 }
             } else {
                 state.notify("Select an image to edit its metadata", true);
             }
-        },
+        }
         _ => return false,
     }
     true
@@ -246,13 +262,28 @@ fn extension_commands(mut state: Explorer, command: &Command) -> bool {
         Command::ListScripts => {
             let scripts = crate::extensions::list();
             if scripts.is_empty() {
-                state.notify("No extensions installed in ~/.config/explorer/extensions", false);
+                state.notify(
+                    "No extensions installed in ~/.config/explorer/extensions",
+                    false,
+                );
             } else {
-                state.notify(format!("Extensions: {}", scripts.iter().map(|e| format!("{}: {}", e.name, e.description)).collect::<Vec<_>>().join(", ")), false);
+                state.notify(
+                    format!(
+                        "Extensions: {}",
+                        scripts
+                            .iter()
+                            .map(|e| format!("{}: {}", e.name, e.description))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    false,
+                );
             }
         }
         Command::RunScript(invocation) => {
-            let (name, arguments) = invocation.split_once(char::is_whitespace).unwrap_or((invocation.as_str(), ""));
+            let (name, arguments) = invocation
+                .split_once(char::is_whitespace)
+                .unwrap_or((invocation.as_str(), ""));
             let name = name.to_owned();
             let arguments = arguments.to_owned();
             let folder = state.current();
@@ -261,9 +292,14 @@ fn extension_commands(mut state: Explorer, command: &Command) -> bool {
             spawn_forever(async move {
                 let result = tokio::task::spawn_blocking(move || {
                     crate::extensions::run(&name, arguments, folder, files)
-                }).await.unwrap_or_else(|error| Err(error.to_string()));
+                })
+                .await
+                .unwrap_or_else(|error| Err(error.to_string()));
                 match result {
-                    Ok(message) => { state.revision += 1; state.notify(message, false); }
+                    Ok(message) => {
+                        state.revision += 1;
+                        state.notify(message, false);
+                    }
                     Err(error) => state.notify(error, true),
                 }
             });
@@ -322,7 +358,7 @@ fn display(mut state: Explorer, command: &Command) -> bool {
             } else {
                 state.preview.toggle();
             }
-        },
+        }
         Command::ToggleSidebar => state.sidebar.toggle(),
         Command::SetView(view) => {
             if (state.view)() != View::Gallery && *view == View::Gallery {
@@ -345,9 +381,13 @@ fn display(mut state: Explorer, command: &Command) -> bool {
         }
         Command::Zoom(direction) => {
             if (state.view)() == View::Gallery && (state.gallery_focus)() {
-                state.gallery_zoom.set(viewport::zoom_step((state.gallery_zoom)(), *direction));
+                state
+                    .gallery_zoom
+                    .set(viewport::zoom_step((state.gallery_zoom)(), *direction));
             } else {
-                state.zoom.set(viewport::zoom_step((state.zoom)(), *direction));
+                state
+                    .zoom
+                    .set(viewport::zoom_step((state.zoom)(), *direction));
                 if (state.view)() != View::Gallery {
                     state.view.set(View::Grid);
                 }
@@ -463,7 +503,10 @@ fn toggle_mark(mut state: Explorer) {
 
 fn escape(mut state: Explorer) {
     state.keys.set(String::new());
-    if *state.overlay.peek() == Overlay::None && (state.view)() == View::Gallery && (state.gallery_focus)() {
+    if *state.overlay.peek() == Overlay::None
+        && (state.view)() == View::Gallery
+        && (state.gallery_focus)()
+    {
         state.gallery_focus.set(false);
         state.gallery_zoom.set(1.0);
         state.set_cursor(state.index());

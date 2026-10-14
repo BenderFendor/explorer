@@ -95,17 +95,37 @@ fn SaveAs(pending: std::sync::Arc<crate::imports::Pending>) -> Element {
 #[component]
 fn Properties(path: std::path::PathBuf) -> Element {
     let mut state = use_context::<Explorer>();
-    let filename = path.file_name().map(|x| x.to_string_lossy().into_owned()).unwrap_or_else(|| "/".into());
+    let filename = path
+        .file_name()
+        .map(|x| x.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "/".into());
     let metadata = std::fs::symlink_metadata(&path).ok();
-    let kind = if metadata.as_ref().is_some_and(|m| m.is_dir()) { "Folder".to_owned() }
-        else if metadata.as_ref().is_some_and(|m| m.file_type().is_symlink()) { "Symbolic link".to_owned() }
-        else { mime_guess::from_path(&path).first_raw().unwrap_or("application/octet-stream").to_owned() };
-    let size = metadata.as_ref().map(|m| format!("{} bytes", m.len())).unwrap_or_else(|| "Unavailable".into());
-    let permissions = metadata.as_ref().map(|m| {
-        use std::os::unix::fs::PermissionsExt;
-        format!("{:o}", m.permissions().mode() & 0o7777)
-    }).unwrap_or_else(|| "Unavailable".into());
-    let modified = metadata.and_then(|m| m.modified().ok())
+    let kind = if metadata.as_ref().is_some_and(|m| m.is_dir()) {
+        "Folder".to_owned()
+    } else if metadata
+        .as_ref()
+        .is_some_and(|m| m.file_type().is_symlink())
+    {
+        "Symbolic link".to_owned()
+    } else {
+        mime_guess::from_path(&path)
+            .first_raw()
+            .unwrap_or("application/octet-stream")
+            .to_owned()
+    };
+    let size = metadata
+        .as_ref()
+        .map(|m| format!("{} bytes", m.len()))
+        .unwrap_or_else(|| "Unavailable".into());
+    let permissions = metadata
+        .as_ref()
+        .map(|m| {
+            use std::os::unix::fs::PermissionsExt;
+            format!("{:o}", m.permissions().mode() & 0o7777)
+        })
+        .unwrap_or_else(|| "Unavailable".into());
+    let modified = metadata
+        .and_then(|m| m.modified().ok())
         .map(crate::filesystem::format_time)
         .unwrap_or_else(|| "Unavailable".into());
     let image_info = crate::image_metadata::load(&path);

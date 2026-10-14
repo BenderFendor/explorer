@@ -90,7 +90,12 @@ pub fn transfer(
                 Transfer::Copy => crate::image_metadata::copy_sidecar(source, &target),
                 Transfer::Move => crate::image_metadata::move_sidecar(source, &target),
             };
-            preserved.map_err(|error| format!("{} transferred but metadata could not be preserved: {error}", display_name(source)))?;
+            preserved.map_err(|error| {
+                format!(
+                    "{} transferred but metadata could not be preserved: {error}",
+                    display_name(source)
+                )
+            })?;
         }
         created.push(target);
     }
@@ -272,7 +277,9 @@ pub fn rename(path: &Path, name: &str) -> Result<PathBuf, String> {
     }
     fs::rename(path, &target).map_err(|error| error.to_string())?;
     if let Err(error) = crate::image_metadata::move_sidecar(path, &target) {
-        return Err(format!("Renamed file, but metadata could not be relocated: {error}"));
+        return Err(format!(
+            "Renamed file, but metadata could not be relocated: {error}"
+        ));
     }
     Ok(target)
 }

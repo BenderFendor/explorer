@@ -209,7 +209,10 @@ mod tests {
         assert_eq!(gallery.columns, 3);
         assert_eq!(gallery.row, GALLERY_CELL_H);
         assert_eq!(gallery.visible(0.0, 1000).start, 0);
-        assert_eq!(gallery.visible(GALLERY_CELL_H * 2.0, 1000).start, gallery.columns * 2);
+        assert_eq!(
+            gallery.visible(GALLERY_CELL_H * 2.0, 1000).start,
+            gallery.columns * 2
+        );
     }
 
     #[test]

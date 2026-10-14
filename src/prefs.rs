@@ -84,14 +84,22 @@ mod tests {
 /// Persistent single-key navigation bookmarks, independent of GTK sidebar pins.
 pub fn load_key_bookmarks() -> std::collections::HashMap<char, PathBuf> {
     let path = state_path().with_file_name("key-bookmarks.json");
-    fs::read(path).ok().and_then(|data| serde_json::from_slice(&data).ok()).unwrap_or_default()
+    fs::read(path)
+        .ok()
+        .and_then(|data| serde_json::from_slice(&data).ok())
+        .unwrap_or_default()
 }
 
-pub fn save_key_bookmarks(bookmarks: &std::collections::HashMap<char, PathBuf>) -> std::io::Result<()> {
+pub fn save_key_bookmarks(
+    bookmarks: &std::collections::HashMap<char, PathBuf>,
+) -> std::io::Result<()> {
     let path = state_path().with_file_name("key-bookmarks.json");
     fs::create_dir_all(path.parent().unwrap_or(std::path::Path::new(".")))?;
     let temporary = path.with_extension("json.tmp");
-    fs::write(&temporary, serde_json::to_vec_pretty(bookmarks).map_err(std::io::Error::other)?)?;
+    fs::write(
+        &temporary,
+        serde_json::to_vec_pretty(bookmarks).map_err(std::io::Error::other)?,
+    )?;
     fs::rename(temporary, path)
 }
 
@@ -107,13 +115,22 @@ pub struct UiPreferences {
 
 impl Default for UiPreferences {
     fn default() -> Self {
-        Self { view: "Grid".into(), zoom: 1.0, hidden: true, sidebar: true, preview: false }
+        Self {
+            view: "Grid".into(),
+            zoom: 1.0,
+            hidden: true,
+            sidebar: true,
+            preview: false,
+        }
     }
 }
 
 pub fn load_ui() -> UiPreferences {
     let file = state_path().with_file_name("ui.json");
-    fs::read(file).ok().and_then(|bytes| serde_json::from_slice(&bytes).ok()).unwrap_or_default()
+    fs::read(file)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default()
 }
 
 pub fn save_ui(value: &UiPreferences) -> std::io::Result<()> {

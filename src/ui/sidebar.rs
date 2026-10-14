@@ -15,7 +15,9 @@ pub fn Sidebar() -> Element {
         loop {
             tokio::time::sleep(Duration::from_secs(4)).await;
             let fresh = places::load();
-            if *places.peek() != fresh { places.set(fresh); }
+            if *places.peek() != fresh {
+                places.set(fresh);
+            }
         }
     });
     let shown = places.read();
@@ -88,8 +90,12 @@ fn PlaceLink(
 ) -> Element {
     let state = use_context::<Explorer>();
     let active = place.path == current;
-    let class = format!("place{}{}{}", if nested { " nested" } else { "" },
-        if quiet { " quiet" } else { "" }, if active { " active" } else { "" });
+    let class = format!(
+        "place{}{}{}",
+        if nested { " nested" } else { "" },
+        if quiet { " quiet" } else { "" },
+        if active { " active" } else { "" }
+    );
     let path = place.path.clone();
     let tab_path = place.path.clone();
     let unpin_path = place.path.clone();

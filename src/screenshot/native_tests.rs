@@ -197,7 +197,9 @@ fn fixture() -> Fixture {
 fn ranger_keys_file_operations_and_menus_use_native_events() {
     let fixture = fixture();
     let studio = fixture.0.join("Studio");
-    unsafe { std::env::set_var("EXPLORER_STATE_DIR", fixture.0.join("state")); }
+    unsafe {
+        std::env::set_var("EXPLORER_STATE_DIR", fixture.0.join("state"));
+    }
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let _guard = runtime.enter();
     let mut session = Session::new(studio.clone());

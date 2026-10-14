@@ -57,10 +57,14 @@ pub fn load() -> Places {
         .map(|text| parse_bookmarks(&text))
         .unwrap_or_default();
     let devices = parse_mounts(&fs::read_to_string("/proc/self/mounts").unwrap_or_default());
-    let frequent = history::frequent(5).into_iter()
-        .map(|visit| Place::new(name_of(&visit.path), visit.path)).collect();
-    let recent = history::recent(false, 5).into_iter()
-        .map(|visit| Place::new(name_of(&visit.path), visit.path)).collect();
+    let frequent = history::frequent(5)
+        .into_iter()
+        .map(|visit| Place::new(name_of(&visit.path), visit.path))
+        .collect();
+    let recent = history::recent(false, 5)
+        .into_iter()
+        .map(|visit| Place::new(name_of(&visit.path), visit.path))
+        .collect();
     Places {
         home: Some(Place::new(user, home)),
         folders,
@@ -157,13 +161,22 @@ pub fn bookmarks_path() -> PathBuf {
 }
 
 pub fn pin(path: &std::path::Path) -> Result<(), String> {
-    if !path.is_dir() { return Err("Only existing folders can be pinned".into()); }
+    if !path.is_dir() {
+        return Err("Only existing folders can be pinned".into());
+    }
     let file = bookmarks_path();
     let existing = fs::read_to_string(&file).unwrap_or_default();
-    if parse_bookmarks(&existing).iter().any(|item| item.path == path) { return Ok(()); }
+    if parse_bookmarks(&existing)
+        .iter()
+        .any(|item| item.path == path)
+    {
+        return Ok(());
+    }
     let uri = url::Url::from_file_path(path).map_err(|_| "Invalid bookmark path")?;
     let mut next = existing;
-    if !next.is_empty() && !next.ends_with('\n') { next.push('\n'); }
+    if !next.is_empty() && !next.ends_with('\n') {
+        next.push('\n');
+    }
     next.push_str(uri.as_str());
     next.push('\n');
     write_bookmarks(&file, &next)
@@ -172,14 +185,21 @@ pub fn pin(path: &std::path::Path) -> Result<(), String> {
 pub fn unpin(path: &std::path::Path) -> Result<(), String> {
     let file = bookmarks_path();
     let existing = fs::read_to_string(&file).map_err(|e| e.to_string())?;
-    let next = existing.lines().filter(|line| {
-        parse_bookmarks(line).first().is_none_or(|place| place.path != path)
-    }).collect::<Vec<_>>().join("\n");
+    let next = existing
+        .lines()
+        .filter(|line| {
+            parse_bookmarks(line)
+                .first()
+                .is_none_or(|place| place.path != path)
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
     write_bookmarks(&file, &(next + "\n"))
 }
 
 fn write_bookmarks(path: &std::path::Path, content: &str) -> Result<(), String> {
-    fs::create_dir_all(path.parent().ok_or("Missing bookmark directory")?).map_err(|e| e.to_string())?;
+    fs::create_dir_all(path.parent().ok_or("Missing bookmark directory")?)
+        .map_err(|e| e.to_string())?;
     let temp = path.with_extension("bookmarks.tmp");
     fs::write(&temp, content).map_err(|e| e.to_string())?;
     fs::rename(temp, path).map_err(|e| e.to_string())
@@ -190,6 +210,9 @@ mod pin_tests {
     use super::*;
     #[test]
     fn gtk_pins_preserve_display_labels() {
-        assert_eq!(parse_bookmarks("file:///tmp/Pictures Inspiration\n")[0].name, "Inspiration");
+        assert_eq!(
+            parse_bookmarks("file:///tmp/Pictures Inspiration\n")[0].name,
+            "Inspiration"
+        );
     }
 }
