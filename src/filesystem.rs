@@ -327,7 +327,7 @@ pub fn format_size(bytes: u64) -> String {
     format!("{:.1} {unit}", bytes as f64 / divisor as f64)
 }
 
-pub fn format_time(time: SystemTime) -> String {
+pub pub(crate) fn format_time(time: SystemTime) -> String {
     let Ok(stamp) = jiff::Timestamp::try_from(time) else {
         return String::new();
     };

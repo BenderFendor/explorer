@@ -106,8 +106,7 @@ fn Properties(path: std::path::PathBuf) -> Element {
         format!("{:o}", m.permissions().mode() & 0o7777)
     }).unwrap_or_else(|| "Unavailable".into());
     let modified = metadata.and_then(|m| m.modified().ok())
-        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|span| format!("Unix timestamp: {}", span.as_secs()))
+        .map(crate::filesystem::format_time)
         .unwrap_or_else(|| "Unavailable".into());
     let image_info = crate::image_metadata::load(&path);
     let tags_text = image_info.tags.join(", ");

@@ -141,8 +141,8 @@ Use `scripts/headless_wayland.sh COMMAND` for window and clipboard tests. Its pr
 
 - A drag shows the compositor's default cursor; there is no drag preview image. Drops on sidebar places are not supported yet.
 - Clipboard and drag and drop need a Wayland session. On X11, copy and paste stay inside the app and drag and drop is unavailable.
-- There is no undo.
+- There is no general undo or redo yet; extension file operations are also not transactional.
 - Unmounted drives do not appear until something mounts them.
 - "Open with" takes a typed command, not a list of installed applications.
-- Sorting (method and direction) is remembered between runs; zoom, view, and bookmarks still reset when the app restarts.
+- Sorting, grid zoom, current view, sidebar/preview state, and keyboard bookmarks persist between runs. Tabs and marked selections reset when the app restarts.
 - Zooming moves the view back to the cursor.
