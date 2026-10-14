@@ -6,6 +6,7 @@ mod extensions;
 mod file_manager1;
 mod filesystem;
 mod history;
+mod gallery_layout;
 mod icons;
 mod image_metadata;
 mod imports;
