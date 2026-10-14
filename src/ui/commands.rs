@@ -394,6 +394,7 @@ fn escape(mut state: Explorer) {
     if *state.overlay.peek() == Overlay::None && (state.view)() == View::Gallery && (state.gallery_focus)() {
         state.gallery_focus.set(false);
         state.gallery_zoom.set(1.0);
+        state.set_cursor(state.index());
         state.refocus();
         return;
     }

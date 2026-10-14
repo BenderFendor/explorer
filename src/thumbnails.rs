@@ -203,6 +203,19 @@ mod tests {
     use super::*;
 
     #[test]
+    fn gallery_filters_image_mimes_and_skips_folders() {
+        use crate::filesystem::{read_directory, tests::Fixture};
+        let fixture = Fixture::new();
+        for name in ["frame.jpg", "sketch.png", "movie.mp4", "notes.txt"] {
+            std::fs::write(fixture.0.join(name), "").unwrap();
+        }
+        std::fs::create_dir(fixture.0.join("other.png")).unwrap();
+        let entries = read_directory(&fixture.0).unwrap().entries;
+        let images: Vec<_> = entries.iter().filter(|entry| is_image(entry)).map(|entry| entry.name.clone()).collect();
+        assert_eq!(images, ["frame.jpg", "sketch.png"]);
+    }
+
+    #[test]
     fn tumbler_fractional_timestamps_and_standard_seconds_are_validated() {
         let modified = Duration::new(123, 452_754_500);
         assert!(mtime_matches("123", modified));
