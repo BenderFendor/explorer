@@ -160,3 +160,14 @@ so none are fabricated. To attach those later, use the annotations importer.
 
 Extensions receive a `refresh` hint but Explorer refreshes automatically
 after the extension exits. Neither importer needs background services.
+
+## Working with local boards and search
+
+`:gallery_mode grid|masonry|board` switches visual presentation.
+Within the board use drag-to-place, `:board_move X Y` and
+`:board_size WIDTH`. Board coordinates and image metadata are stored in the
+folder's `.explorer` hidden directory.
+
+`:index`, `:find QUERY`, and `:clear_index` work on a selected
+folder subtree. Indexing is explicit; text content is bounded and hidden
+directories are skipped. No continuous background indexing is started.

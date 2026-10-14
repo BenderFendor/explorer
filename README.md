@@ -141,7 +141,7 @@ Use `scripts/headless_wayland.sh COMMAND` for window and clipboard tests. Its pr
 
 - A drag shows the compositor's default cursor; there is no drag preview image. Drops on sidebar places are not supported yet.
 - Clipboard and drag and drop need a Wayland session. On X11, copy and paste stay inside the app and drag and drop is unavailable.
-- There is no general undo or redo yet; extension file operations are also not transactional.
+- Undo/redo is available for create, rename, copy and move operations (Ctrl+Z / Ctrl+Shift+Z or :undo/:redo). Trash and permanent deletion are not reversible through Explorer's journal. Extensions are not transactional.
 - Unmounted drives do not appear until something mounts them.
 - "Open with" takes a typed command, not a list of installed applications.
 - Sorting, grid zoom, current view, sidebar/preview state, and keyboard bookmarks persist between runs. Tabs and marked selections reset when the app restarts.
@@ -150,3 +150,27 @@ Use `scripts/headless_wayland.sh COMMAND` for window and clipboard tests. Its pr
 For optional embedded XMP import/export, install Exiv2 and use
 `:xmp_read` / `:xmp_write` on a selected image. Sidecars remain the source
 of truth; Exiv2 is not required for ordinary browsing.
+
+## New gallery and file utilities
+
+Gallery defaults to proportional masonry. Click the gallery-mode control to
+cycle between uniform grid, masonry and freeform board. Board positions and
+sizes stay in `.explorer/board.json`, separate from original images; drag a
+card to move it, or use `:board_move X Y` / `:board_size WIDTH` for
+precise placement. Standard images in any folder work without an initialized board.
+
+Local content search is opt-in: run `:index` within a directory to build
+a bounded recursive index, and `:find words` to search filenames, image
+annotations and small text-file contents. `:clear_index` removes that index.
+The index is stored under XDG state, not inside your files.
+
+`:choose_app` opens a native desktop-entry application chooser for the selected
+file, including a Make Default association action. Removable drives listed by
+lsblk may be mounted/unmounted via udisksctl and powered off when removable.
+Both commands are system facilities; no application daemon is required.
+
+Undo/redo journals use safe file stashes for new or copied files. Rather than
+discarding edited copies during undo, Explorer moves their bytes to its
+XDG state directory until redo. The undo journal is bounded to 100 entries;
+older stashes may require manual cleanup. Permanent deletion and trash
+restoration are not yet covered by this journal.

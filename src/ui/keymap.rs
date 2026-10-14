@@ -204,6 +204,8 @@ const CONTROL: &[(&str, Option<bool>, Command)] = &[
     ("c", None, Command::Yank),
     ("x", None, Command::Cut),
     ("v", None, Command::Paste),
+    ("z", Some(false), Command::Undo),
+    ("z", Some(true), Command::Redo),
     ("h", None, Command::ToggleHidden),
     ("l", None, Command::EditPath),
     ("r", None, Command::Refresh),
@@ -375,6 +377,7 @@ pub const HELP: &[(&str, &str)] = &[
     ("yy  dd  pp", "Copy, cut, paste"),
     ("dT  dD", "Trash, delete permanently"),
     ("cw  F2", "Rename"),
+    ("Ctrl+Z / Ctrl+Shift+Z", "Undo and redo reversible operations"),
     ("/", "Filter this folder"),
     (
         ":",
