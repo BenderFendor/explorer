@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Explorer
+GenericName=File Manager
+Comment=Browse and manage files
+Exec=explorer %f
+Icon=system-file-manager
+Terminal=false
+StartupNotify=true
+StartupWMClass=explorer
+Categories=System;FileTools;FileManager;Core;
+MimeType=inode/directory;
+Keywords=folder;files;explorer;thunar;ranger;

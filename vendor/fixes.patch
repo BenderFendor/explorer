@@ -1,0 +1,204 @@
+--- a/vendor/accesskit_unix-0.13.1/src/context.rs
++++ b/vendor/accesskit_unix-0.13.1/src/context.rs
+@@ -25,7 +25,7 @@
+ 
+ use crate::{
+     adapter::{AdapterState, Callback, Message},
+-    atspi::{map_or_ignoring_broken_pipe, Bus},
++    atspi::Bus,
+     executor::Executor,
+     util::block_on,
+ };
+@@ -51,7 +51,9 @@
+                     if let Ok(session_bus) = ConnectionBuilder::session() {
+                         if let Ok(session_bus) = session_bus.internal_executor(false).build().await
+                         {
+-                            run_event_loop(&executor, session_bus, rx).await.unwrap();
++                            if let Err(error) = run_event_loop(&executor, session_bus, rx).await {
++                                eprintln!("AccessKit: accessibility bus unavailable: {error}");
++                            }
+                         }
+                     }
+                 }))
+@@ -162,7 +164,7 @@
+                 atspi_bus = None;
+                 if let Some(change) = change {
+                     if change.get().await? {
+-                        atspi_bus = map_or_ignoring_broken_pipe(Bus::new(&session_bus, executor).await, None, Some)?;
++                        atspi_bus = connect_bus(&session_bus, executor).await;
+                     }
+                 }
+                 for entry in &mut adapters {
+@@ -251,3 +253,13 @@
+ 
+     Ok(())
+ }
++
++async fn connect_bus(session_bus: &Connection, executor: &Executor<'_>) -> Option<Bus> {
++    match Bus::new(session_bus, executor).await {
++        Ok(bus) => Some(bus),
++        Err(error) => {
++            eprintln!("AccessKit: accessibility bus unavailable: {error}");
++            None
++        }
++    }
++}
+--- a/vendor/blitz-dom-0.2.4/src/document.rs
++++ b/vendor/blitz-dom-0.2.4/src/document.rs
+@@ -524,6 +524,10 @@
+     }
+ 
+     pub(crate) fn remove_and_drop_pe(&mut self, node_id: usize) -> Option<Node> {
++        self.iter_subtree_mut(node_id, |id, doc| {
++            crate::mutator::clear_removed_interaction(id, doc);
++            crate::layout::construct::drop_layout_wrappers(doc, id);
++        });
+         fn remove_pe_ignoring_parent(doc: &mut BaseDocument, node_id: usize) -> Option<Node> {
+             let mut node = doc.nodes.try_remove(node_id);
+             if let Some(node) = &mut node {
+@@ -1070,6 +1074,7 @@
+             let _flags = doc.nodes[node_id].flags;
+ 
+             if NON_INCREMENTAL || damage.intersects(CONSTRUCT_FC | CONSTRUCT_BOX) {
++                crate::layout::construct::drop_layout_wrappers(doc, node_id);
+                 //} || flags.contains(NodeFlags::IS_INLINE_ROOT) {
+                 let mut layout_children = Vec::new();
+                 let mut anonymous_block: Option<usize> = None;
+--- a/vendor/blitz-dom-0.2.4/src/layout/construct.rs
++++ b/vendor/blitz-dom-0.2.4/src/layout/construct.rs
+@@ -66,6 +66,36 @@
+         parley::LineHeight::FontSizeRelative(relative) => relative * font_size,
+         parley::LineHeight::Absolute(absolute) => absolute,
+         parley::LineHeight::MetricsRelative(relative) => relative * font_size, //unreachable!(),
++    }
++}
++
++pub(crate) fn drop_layout_wrappers(doc: &mut BaseDocument, container: usize) {
++    let previous = doc.nodes[container]
++        .layout_children
++        .borrow_mut()
++        .take()
++        .unwrap_or_default();
++    for id in previous {
++        let Some(node) = doc.nodes.get(id) else {
++            continue;
++        };
++        let is_pseudo = node
++            .parent
++            .and_then(|parent| doc.nodes.get(parent))
++            .is_some_and(|parent| parent.before == Some(id) || parent.after == Some(id));
++        if !node.is_anonymous() || is_pseudo || node.layout_parent.get() != Some(container) {
++            continue;
++        }
++        crate::mutator::clear_removed_interaction(id, doc);
++        let wrapper = doc.nodes.remove(id);
++        // Wrapped DOM children survive; bypass the old wrapper until reconstruction.
++        for child in wrapper.children {
++            if let Some(child) = doc.nodes.get_mut(child) {
++                if child.layout_parent.get() == Some(id) {
++                    child.layout_parent.set(wrapper.layout_parent.get());
++                }
++            }
++        }
+     }
+ }
+ 
+@@ -509,8 +539,8 @@
+             if let Some(anon_id) = *anonymous_block_id {
+                 if block_is_only_whitespace(doc, anon_id) {
+                     layout_children.pop();
++                    crate::mutator::clear_removed_interaction(anon_id, doc);
+                     doc.nodes.remove(anon_id);
+-                    *anonymous_block_id = None;
+                 }
+             }
+ 
+@@ -523,6 +553,7 @@
+     if let Some(anon_id) = *anonymous_block_id {
+         if block_is_only_whitespace(doc, anon_id) {
+             layout_children.pop();
++            crate::mutator::clear_removed_interaction(anon_id, doc);
+             doc.nodes.remove(anon_id);
+             *anonymous_block_id = None;
+         }
+--- a/vendor/blitz-dom-0.2.4/src/mutator.rs
++++ b/vendor/blitz-dom-0.2.4/src/mutator.rs
+@@ -589,6 +589,8 @@
+ 
+     fn process_removed_subtree(&mut self, node_id: usize) {
+         self.doc.iter_subtree_mut(node_id, |node_id, doc| {
++            clear_removed_interaction(node_id, doc);
++            crate::layout::construct::drop_layout_wrappers(doc, node_id);
+             let node = &mut doc.nodes[node_id];
+             node.flags.set(NodeFlags::IS_IN_DOCUMENT, false);
+ 
+@@ -814,3 +816,22 @@
+         }
+     }
+ }
++
++pub(crate) fn clear_removed_interaction(node_id: usize, doc: &mut BaseDocument) {
++    // Clear interaction handles while their nodes and layout ancestors still exist.
++    if doc.hover_node_id == Some(node_id) {
++        for id in doc.maybe_node_layout_ancestors(doc.hover_node_id) {
++            doc.snapshot_node_and(id, |node| node.unhover());
++        }
++        doc.hover_node_id = None;
++    }
++    if doc.focus_node_id == Some(node_id) {
++        doc.clear_focus();
++    }
++    if doc.active_node_id == Some(node_id) {
++        doc.unactive_node();
++    }
++    if doc.mousedown_node_id == Some(node_id) {
++        doc.mousedown_node_id = None;
++    }
++}
+--- a/vendor/blitz-dom-0.2.4/src/node/node.rs
++++ b/vendor/blitz-dom-0.2.4/src/node/node.rs
+@@ -752,7 +752,7 @@
+             .or_else(|| {
+                 if self.flags.is_inline_root() {
+                     let element_data = &self.element_data().unwrap();
+-                    let layout = &element_data.inline_layout_data.as_ref().unwrap().layout;
++                    let layout = &element_data.inline_layout_data.as_ref()?.layout;
+                     let scale = layout.scale();
+ 
+                     Cluster::from_point(layout, x * scale, y * scale).and_then(|(cluster, _)| {
+--- a/vendor/blitz-shell-0.2.3/src/lib.rs
++++ b/vendor/blitz-shell-0.2.3/src/lib.rs
+@@ -115,7 +115,7 @@
+         )
+     ))]
+     fn get_clipboard_text(&self) -> Result<String, blitz_traits::shell::ClipboardError> {
+-        let mut cb = arboard::Clipboard::new().unwrap();
++        let mut cb = arboard::Clipboard::new().map_err(|_| blitz_traits::shell::ClipboardError)?;
+         cb.get_text()
+             .map_err(|_| blitz_traits::shell::ClipboardError)
+     }
+@@ -133,7 +133,7 @@
+         )
+     ))]
+     fn set_clipboard_text(&self, text: String) -> Result<(), blitz_traits::shell::ClipboardError> {
+-        let mut cb = arboard::Clipboard::new().unwrap();
++        let mut cb = arboard::Clipboard::new().map_err(|_| blitz_traits::shell::ClipboardError)?;
+         cb.set_text(text.to_owned())
+             .map_err(|_| blitz_traits::shell::ClipboardError)
+     }
+--- a/vendor/blitz-shell-0.2.3/src/net.rs
++++ b/vendor/blitz-shell-0.2.3/src/net.rs
+@@ -22,9 +22,10 @@
+     fn call(&self, doc_id: usize, result: Result<Resource, Option<String>>) {
+         // TODO: handle error case
+         if let Ok(data) = result {
+-            self.0
+-                .send_event(BlitzShellEvent::ResourceLoad { doc_id, data })
+-                .unwrap()
++            // Resource loads may finish after the window has closed.
++            let _ = self
++                .0
++                .send_event(BlitzShellEvent::ResourceLoad { doc_id, data });
+         }
+     }
+ }
