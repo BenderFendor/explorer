@@ -374,7 +374,7 @@ fn GalleryFocus() -> Element {
                     }
                 }
                 div { class: "gallery-facts",
-                    span { class: "gallery-filename", {name} }
+                    span { class: "gallery-filename", {name.clone()} }
                     span { class: "gallery-details", "{size}  ·  {date}  ·  {index + 1}/{count}  ·  {scale}×" }
                 }
             }

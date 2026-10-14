@@ -8,7 +8,7 @@ use std::{path::PathBuf, time::Duration};
 
 #[component]
 pub fn Sidebar() -> Element {
-    let mut state = use_context::<Explorer>();
+    let state = use_context::<Explorer>();
     let mut places = use_signal(places::load);
     let mut expanded = use_signal(|| false);
     use_future(move || async move {
@@ -86,7 +86,7 @@ fn PlaceLink(
     #[props(default)] pinned: bool,
     #[props(default)] reload: Option<Signal<Places>>,
 ) -> Element {
-    let mut state = use_context::<Explorer>();
+    let state = use_context::<Explorer>();
     let active = place.path == current;
     let class = format!("place{}{}{}", if nested { " nested" } else { "" },
         if quiet { " quiet" } else { "" }, if active { " active" } else { "" });
@@ -124,7 +124,7 @@ fn PlaceLink(
 
 #[component]
 fn Preferences() -> Element {
-    let mut state = use_context::<Explorer>();
+    let state = use_context::<Explorer>();
     rsx! {
         div { class: "preferences",
             span { class: "preference", title: "Cycle Matugen, light, and dark",
