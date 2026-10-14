@@ -243,7 +243,7 @@ fn extension_commands(mut state: Explorer, command: &Command) -> bool {
             if scripts.is_empty() {
                 state.notify("No extensions installed in ~/.config/explorer/extensions", false);
             } else {
-                state.notify(format!("Extensions: {}", scripts.iter().map(|e| e.name.as_str()).collect::<Vec<_>>().join(", ")), false);
+                state.notify(format!("Extensions: {}", scripts.iter().map(|e| format!("{}: {}", e.name, e.description)).collect::<Vec<_>>().join(", ")), false);
             }
         }
         Command::RunScript(invocation) => {

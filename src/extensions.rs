@@ -32,7 +32,6 @@ pub struct Response {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum FileOperation {
     CreateFolder { name: String },
@@ -40,6 +39,7 @@ pub enum FileOperation {
     Copy { path: PathBuf, folder: PathBuf },
 }
 
+#[derive(Clone, Debug, Deserialize)]
 pub struct Update {
     pub path: PathBuf,
     pub title: Option<String>,

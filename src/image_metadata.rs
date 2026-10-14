@@ -78,6 +78,7 @@ pub fn move_sidecar(from: &Path, to: &Path) -> io::Result<()> {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
+#[allow(dead_code)]
 pub struct Board {
     pub version: u32,
     pub cards: Vec<Card>,
@@ -85,6 +86,7 @@ pub struct Board {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
+#[allow(dead_code)]
 pub struct Card {
     pub file: String,
     pub x: f32,
@@ -93,12 +95,14 @@ pub struct Card {
     pub note: String,
 }
 
+#[allow(dead_code)]
 pub fn load_board(folder: &Path) -> Board {
     fs::read(folder.join(".explorer/board.json")).ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
         .unwrap_or_default()
 }
 
+#[allow(dead_code)]
 pub fn save_board(folder: &Path, board: &Board) -> io::Result<()> {
     for card in &board.cards {
         if Path::new(&card.file).components().count() != 1 {
