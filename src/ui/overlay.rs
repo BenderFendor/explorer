@@ -16,6 +16,7 @@ pub fn Overlays() -> Element {
         match overlay {
             Overlay::Confirm(paths) => rsx! { Confirm { label: commands::describe(&paths) } },
             Overlay::Properties(path) => rsx! { Properties { path } },
+            Overlay::SearchResults(query,results) => rsx! { SearchResults { query, results } },
             Overlay::Menu(menu) => rsx! { ContextMenu { menu } },
             Overlay::Help => rsx! { Help {} },
             Overlay::None | Overlay::Console(_) | Overlay::SaveAs(_) => rsx! {},
@@ -85,6 +86,36 @@ fn SaveAs(pending: std::sync::Arc<crate::imports::Pending>) -> Element {
                         Key::Enter => commands::save_as(state, pending.clone(), name()),
                         Key::Escape => { state.overlay.set(Overlay::None); state.refocus(); }
                         _ => {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn SearchResults(query:String,results:Vec<std::path::PathBuf>)->Element {
+    let mut state=use_context::<Explorer>();
+    rsx! {
+        div { class:"scrim fade",
+            div {class:"dialog search-dialog pop",role:"dialog",
+                div {class:"search-heading",
+                    span {"Search: {query} · {} results",results.len()}
+                    span {class:"dialog-button",onclick:move |_|state.overlay.set(Overlay::None),"Close"}
+                }
+                div {class:"search-hits",
+                    for result in results {
+                        div {key:"{result.display()}",class:"search-hit",
+                            title:"{result.display()}",
+                            onclick:move |_| {
+                                let path=result.clone();
+                                state.overlay.set(Overlay::None);
+                                if path.is_dir(){state.visit(path);}
+                                else if let Some(parent)=path.parent(){state.visit_with(parent.to_path_buf(),Some(path));}
+                                state.refocus();
+                            },
+                            "{result.display()}"
+                        }
                     }
                 }
             }
@@ -218,6 +249,8 @@ fn background_choices(in_trash: bool) -> Vec<Choice> {
         ("New file", ":touch", Command::Console("touch ")),
         ("Pin this folder", ":pin", Command::PinCurrent),
         ("Installed extensions", ":scripts", Command::ListScripts),
+        ("Index this folder", ":index", Command::IndexFolder),
+        ("Search indexed files", ":find", Command::Console("find ")),
         ("Paste", "pp", Command::Paste),
         ("Terminal here", "S", Command::Terminal),
         ("Grid", "Ctrl+1", Command::SetView(View::Grid)),

@@ -16,6 +16,7 @@ pub fn run(state: Explorer, command: Command) {
         || select(state, &command)
         || clipboard(state, &command)
         || files(state, &command)
+        || index_commands(state, &command)
         || extension_commands(state, &command)
         || trash(state, &command)
         || prompts(state, &command)
@@ -301,6 +302,38 @@ fn files(mut state: Explorer, command: &Command) -> bool {
             }
         }
         _ => return false,
+    }
+    true
+}
+
+fn index_commands(mut state:Explorer,command:&Command)->bool {
+    match command {
+        Command::IndexFolder=>{
+            let root=state.current();
+            state.notify("Indexing folder recursively",false);
+            spawn_forever(async move {
+                let result=tokio::task::spawn_blocking(move ||crate::search::rebuild(&root)).await
+                  .unwrap_or_else(|e|Err(e.to_string()));
+                match result{Ok(count)=>state.notify(format!("Indexed {count} files"),false),Err(e)=>state.notify(e,true)}
+            });
+        }
+        Command::Search(query)=>{
+            let root=state.current();
+            let query=query.clone();
+            spawn_forever(async move {
+                let requested=query.clone();
+                let result=tokio::task::spawn_blocking(move ||crate::search::find(&root,&requested,120)).await
+                    .unwrap_or_else(|e|Err(e.to_string()));
+                match result {
+                    Ok(paths)=>state.overlay.set(Overlay::SearchResults(query,paths)),
+                    Err(e)=>state.notify(e,true)
+                }
+            });
+        }
+        Command::ClearIndex=>{
+            report(state,crate::search::clear(&state.current()).map_err(|e|e.to_string()));
+        }
+        _=>return false
     }
     true
 }

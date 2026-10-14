@@ -248,3 +248,10 @@ input { font-family: inherit; font-size: inherit; }
 .gallery-masonry-slot .thumb img {width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;}
 .gallery-mode-select {font-size:12px;cursor:pointer; padding:5px 10px;border-radius:5px;background:var(--hover);color:var(--muted);}
 .gallery-mode-select:hover {color:var(--text);}
+
+/* Local recursive search with keyboard and mouse navigation. */
+.search-dialog { width:620px;max-width:92%; }
+.search-heading {display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:12px;}
+.search-hits {max-height:420px;overflow-y:auto; }
+.search-hit {padding:8px;border-radius:5px;font-size:13px;cursor:pointer;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;}
+.search-hit:hover {background:var(--hover);}

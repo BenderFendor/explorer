@@ -52,7 +52,7 @@ fn overlay_key(event: &KeyboardEvent, key: &Key, mut state: Explorer) -> bool {
             state.overlay.set(Overlay::None);
             *key == Key::Escape
         }
-        Overlay::Properties(_) => {
+        Overlay::SearchResults(_,_) | Overlay::Properties(_) => {
             if *key == Key::Escape {
                 state.overlay.set(Overlay::None);
                 state.refocus();
