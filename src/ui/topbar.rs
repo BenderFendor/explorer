@@ -160,7 +160,7 @@ fn Status() -> Element {
             if marked > 0 { span { class: "accent", "{marked} marked" } }
             if !sort.is_empty() { span { {sort} } }
             if (state.hidden)() { span { "hidden shown" } }
-            span { "{count} items" }
+            span { if (state.view)() == super::viewport::View::Gallery { "{count} images" } else { "{count} items" } }
         }
     }
 }

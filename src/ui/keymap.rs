@@ -16,6 +16,9 @@ pub enum Command {
     Page(f64),
     Parent,
     Open,
+    Left,
+    Right,
+    ToggleGallery,
     Back,
     Forward,
     Mark,
@@ -76,8 +79,8 @@ type Binding = (&'static str, fn() -> Command);
 const SEQUENCES: &[Binding] = &[
     ("j", || Command::Move(1)),
     ("k", || Command::Move(-1)),
-    ("h", || Command::Parent),
-    ("l", || Command::Open),
+    ("h", || Command::Left),
+    ("l", || Command::Right),
     ("gg", || Command::Top),
     ("G", || Command::Bottom),
     ("H", || Command::Back),
@@ -97,6 +100,7 @@ const SEQUENCES: &[Binding] = &[
     ("/", || Command::Filter),
     ("f", || Command::Filter),
     ("zh", || Command::ToggleHidden),
+    ("zg", || Command::ToggleGallery),
     (".", || Command::ToggleHidden),
     ("on", || Command::SortBy(Sort::Name)),
     ("ob", || Command::SortBy(Sort::Name)),
@@ -190,6 +194,7 @@ const CONTROL: &[(&str, Option<bool>, Command)] = &[
     ("1", None, Command::SetView(View::Grid)),
     ("2", None, Command::SetView(View::List)),
     ("3", None, Command::SetView(View::Columns)),
+    ("4", None, Command::SetView(View::Gallery)),
     ("=", None, Command::Zoom(1)),
     ("+", None, Command::Zoom(1)),
     ("-", None, Command::Zoom(-1)),
@@ -260,6 +265,7 @@ const CONSOLE: &[(&str, Argument)] = &[
     ("q", Argument::None(Command::CloseTab)),
     ("terminal", Argument::None(Command::Terminal)),
     ("hidden", Argument::None(Command::ToggleHidden)),
+    ("gallery", Argument::None(Command::SetView(View::Gallery)),
     ("help", Argument::None(Command::Help)),
 ];
 
@@ -323,7 +329,10 @@ pub const HELP: &[(&str, &str)] = &[
     ("gh  g/  gx", "Home, root, trash"),
     ("S  F4", "Terminal here"),
     ("i  zs", "Preview pane, sidebar"),
-    ("Ctrl+1 2 3", "Grid, list, columns"),
+    ("Ctrl+1 2 3 4", "Grid, list, columns, gallery"),
+    ("zg  :gallery", "Toggle gallery or enter gallery"),
+    ("Gallery: Enter Esc", "Focus image, return to overview"),
+    ("Gallery: h/l", "Previous/next in focus or grid"),
     ("Ctrl+L", "Edit path"),
     ("+  -  Ctrl+wheel", "Zoom the grid; Ctrl+0 resets"),
 ];
@@ -336,6 +345,7 @@ mod tests {
     fn sequences_wait_for_prefixes_and_resolve_complete_bindings() {
         assert_eq!(resolve("g"), Resolution::Pending);
         assert_eq!(resolve("gg"), Resolution::Run(Command::Top));
+        assert_eq!(resolve("zg"), Resolution::Run(Command::ToggleGallery));
         assert_eq!(resolve("d"), Resolution::Pending);
         assert_eq!(resolve("dT"), Resolution::Run(Command::Trash));
         assert_eq!(resolve("dD"), Resolution::Run(Command::Delete));
@@ -384,6 +394,7 @@ mod tests {
             Some(Command::Move(1))
         );
         assert_eq!(chord(&Key::Character("j".into()), Modifiers::empty()), None);
+        assert_eq!(chord(&Key::Character("4".into()), ctrl), Some(Command::SetView(View::Gallery)));
     }
 
     #[test]
@@ -394,6 +405,7 @@ mod tests {
         );
         assert_eq!(parse_console("cd"), Ok(Command::Cd("~".into())));
         assert_eq!(parse_console("sort size"), Ok(Command::SortBy(Sort::Size)));
+        assert_eq!(parse_console("gallery"), Ok(Command::SetView(View::Gallery)));
         assert_eq!(
             parse_console("open_with gimp -n"),
             Ok(Command::OpenWith("gimp -n".into()))

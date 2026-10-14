@@ -109,6 +109,14 @@ fn cached_images(entries: &[Entry], flavor: Flavor) -> HashMap<PathBuf, String> 
         .collect()
 }
 
+/// Only image files belong in gallery mode; videos and documents stay in normal views.
+pub fn is_image(entry: &Entry) -> bool {
+    !entry.folder
+        && mime_guess::from_path(&entry.path)
+            .first()
+            .is_some_and(|mime| mime.type_().as_str() == "image")
+}
+
 pub fn can_preview(entry: &Entry) -> bool {
     !entry.folder
         && mime_guess::from_path(&entry.path)

@@ -149,6 +149,7 @@ fn background_choices(in_trash: bool) -> Vec<Choice> {
         ("Grid", "Ctrl+1", Command::SetView(View::Grid)),
         ("List", "Ctrl+2", Command::SetView(View::List)),
         ("Columns", "Ctrl+3", Command::SetView(View::Columns)),
+        ("Gallery", "Ctrl+4", Command::SetView(View::Gallery)),
         ("Sort by name", "on", Command::SortBy(Sort::Name)),
         ("Sort by modified", "om", Command::SortBy(Sort::Modified)),
         ("Sort by size", "os", Command::SortBy(Sort::Size)),

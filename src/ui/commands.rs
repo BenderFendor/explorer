@@ -25,12 +25,25 @@ pub fn run(state: Explorer, command: Command) {
 fn navigate(state: Explorer, command: &Command) -> bool {
     let count = state.entries.read().len();
     match command {
-        Command::Move(delta) => state.move_by(delta * state.layout().columns as isize),
+        Command::Move(delta) => {
+            let stride = if (state.view)() == View::Gallery && (state.gallery_focus)() {
+                1
+            } else {
+                state.layout().columns as isize
+            };
+            state.move_by(delta * stride);
+        },
         Command::Step(delta) => step(state, *delta),
         Command::Top => state.set_cursor(0),
         Command::Bottom => state.set_cursor(count.saturating_sub(1)),
         Command::Page(fraction) => page(state, *fraction),
         Command::Parent => state.parent(),
+        Command::Left => {
+            if (state.view)() == View::Gallery { state.move_by(-1) } else { state.parent() }
+        }
+        Command::Right => {
+            if (state.view)() == View::Gallery { state.move_by(1) } else { open(state) }
+        }
         Command::Open => open(state),
         Command::Back => state.history(false),
         Command::Forward => state.history(true),
@@ -45,7 +58,7 @@ fn page(state: Explorer, fraction: f64) {
 }
 
 fn step(state: Explorer, delta: isize) {
-    if (state.view)() == View::Grid {
+    if matches!((state.view)(), View::Grid | View::Gallery) {
         state.move_by(delta);
     } else if delta < 0 {
         state.parent();
@@ -242,13 +255,42 @@ fn display(mut state: Explorer, command: &Command) -> bool {
             crate::prefs::save_order((state.order)());
         }
         Command::Refresh => state.revision += 1,
-        Command::TogglePreview => state.preview.toggle(),
+        Command::TogglePreview => {
+            if (state.view)() == View::Gallery && (state.gallery_focus)() {
+                state.gallery_info.toggle();
+            } else {
+                state.preview.toggle();
+            }
+        },
         Command::ToggleSidebar => state.sidebar.toggle(),
-        Command::SetView(view) => state.view.set(*view),
+        Command::SetView(view) => {
+            if (state.view)() != View::Gallery && *view == View::Gallery {
+                state.gallery_previous.set((state.view)());
+            }
+            state.gallery_focus.set(false);
+            state.gallery_zoom.set(1.0);
+            state.view.set(*view);
+        }
+        Command::ToggleGallery => {
+            let next = if (state.view)() == View::Gallery {
+                (state.gallery_previous)()
+            } else {
+                state.gallery_previous.set((state.view)());
+                View::Gallery
+            };
+            state.gallery_focus.set(false);
+            state.gallery_zoom.set(1.0);
+            state.view.set(next);
+        }
         Command::Zoom(direction) => {
-            let next = viewport::zoom_step((state.zoom)(), *direction);
-            state.zoom.set(next);
-            state.view.set(View::Grid);
+            if (state.view)() == View::Gallery && (state.gallery_focus)() {
+                state.gallery_zoom.set(viewport::zoom_step((state.gallery_zoom)(), *direction));
+            } else {
+                state.zoom.set(viewport::zoom_step((state.zoom)(), *direction));
+                if (state.view)() != View::Gallery {
+                    state.view.set(View::Grid);
+                }
+            }
         }
 
         _ => return false,
@@ -313,10 +355,15 @@ fn close_tab(mut state: Explorer) {
     state.arrive(None);
 }
 
-fn open(state: Explorer) {
+fn open(mut state: Explorer) {
     let Some(entry) = state.cursor_entry() else {
         return;
     };
+    if (state.view)() == View::Gallery {
+        state.gallery_zoom.set(1.0);
+        state.gallery_focus.set(true);
+        return;
+    }
     if entry.folder {
         state.visit(entry.path);
         return;
@@ -344,6 +391,12 @@ fn toggle_mark(mut state: Explorer) {
 
 fn escape(mut state: Explorer) {
     state.keys.set(String::new());
+    if *state.overlay.peek() == Overlay::None && (state.view)() == View::Gallery && (state.gallery_focus)() {
+        state.gallery_focus.set(false);
+        state.gallery_zoom.set(1.0);
+        state.refocus();
+        return;
+    }
     if *state.overlay.peek() != Overlay::None {
         state.overlay.set(Overlay::None);
     } else if state.filtering.peek().to_owned() || !state.query.peek().is_empty() {

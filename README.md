@@ -29,7 +29,7 @@ The D-Bus service answers "Show in folder" from browsers and other apps, which o
 
 ## Features
 
-- Views: grid with Tumbler thumbnails, list with size and date, and ranger-style Miller columns (parent, current, preview). Ctrl+1, Ctrl+2, Ctrl+3 switch views.
+- Views: grid with Tumbler thumbnails, list with size and date, ranger-style Miller columns (parent, current, preview), and image-only gallery. Ctrl+1, Ctrl+2, Ctrl+3, Ctrl+4 switch views.
 - Grid zoom: Ctrl+wheel, Ctrl+= and Ctrl+-, or `+` and `-`. Ctrl+0 resets. Maximum zoom is 4.5×, twice the previous maximum.
 - File operations: copy, cut, and paste with progress and cancel; rename; new folder or file; move to trash; permanent delete after confirmation; restore and empty trash. Pasting never overwrites; a conflicting item becomes "name (copy).ext".
 - Selection: a cursor plus marks. Space, `v`, `uv`, Ctrl+A, Ctrl+click, Shift+click, and Shift+arrows. Operations act on the marks, or on the cursor item when nothing is marked.
@@ -40,6 +40,7 @@ The D-Bus service answers "Show in folder" from browsers and other apps, which o
 - Drag and drop with other apps on Wayland: drag files out, or drop files in. A drop on a folder goes into that folder; elsewhere it goes into the open folder. As in Thunar, a drop moves within one filesystem and copies across filesystems.
 - Thumbnails keep the image's aspect ratio. Explorer requests the smallest Tumbler size that covers the drawn size: 128, 256, or 512 px.
 - Preview pane (`i`): folder contents, a 512 px Tumbler thumbnail, or the first lines of a text file.
+- Gallery (`Ctrl+4`, `:gallery`, or `zg` to toggle): image-only overview preserving the current folder sort; Enter or double-click focuses the original image, with a filmstrip. Escape returns to the overview. In the gallery, h/l and left/right step between images; i toggles focus metadata. Zoom uses +, -, or Ctrl+wheel. Return to the prior view with `zg`.
 - Matugen colours from `~/.config/matugen/colors.css`, plus light and dark themes. Hover the sidebar foot to switch the theme or turn motion off.
 
 ## Keys
@@ -67,6 +68,8 @@ Press `?` in the app for the full list.
 | `gh` `g/` `gx` | Home, root, trash |
 | `S`, F4 | Terminal in this folder (`$TERMINAL` or `xdg-terminal-exec`) |
 | `i`, `zs` or F9 | Preview pane, sidebar |
+| `Ctrl+4`, `:gallery`, `zg` | Gallery view; `zg` returns to the previous view |
+| Gallery: `Enter`, `Esc`, `h`/`l` | Focus image, return to overview, previous/next image |
 | Ctrl+L | Edit the path; clicking the current folder name does the same |
 
 The mouse follows Thunar. A click selects. A double click opens. A right click opens a menu for the item or for the folder. A middle click opens a folder in a new tab. The back and forward buttons move through history.
