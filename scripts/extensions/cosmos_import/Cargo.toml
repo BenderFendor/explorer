@@ -1,0 +1,11 @@
+[package]
+name = "explorer-cosmos-import"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Import exported Cosmos image collections into local folders"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zip = { version = "6", default-features = false, features = ["deflate"] }

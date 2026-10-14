@@ -135,3 +135,28 @@ sidecar, because they do not have interoperable standard XMP fields.
 XMP write is explicit, never automatic. Back up valuable originals before
 batch use, because supported metadata fields and image formats vary across
 Exiv2 versions; unsuitable or read-only files should retain their sidecars.
+
+## Importing Pinterest and Cosmos
+
+Both importers are independent Rust executables in `scripts/extensions/`.
+Build with `cargo build --release --manifest-path scripts/extensions/NAME/Cargo.toml`,
+install the corresponding JSON manifest under `~/.config/explorer/extensions/`,
+and replace `executable` with an absolute path to the binary.
+
+**Pinterest:** `:script pinterest_import https://www.pinterest.com/pin/12345/`
+or `:script pinterest_import pins.txt` for a newline-separated list of public
+pin URLs. The importer requests public OpenGraph metadata, downloads image
+assets from Pinterest's CDN, and writes their title, description and original
+pin URL to the folder-local metadata store. It requires the system `curl`
+utility and can fail when Pinterest changes its HTML, rate-limits requests,
+requires authentication, or omits OG metadata. It does not bypass private
+boards or login, and is not a complete paginated board crawler.
+
+**Cosmos:** Export a collection ZIP through Cosmos, then use
+`:script cosmos_import collection.zip` to bring its images into the open
+folder. This imports image bytes locally with path traversal and size protections.
+Cosmos currently omits source URLs and textual notes from its ZIP export,
+so none are fabricated. To attach those later, use the annotations importer.
+
+Extensions receive a `refresh` hint but Explorer refreshes automatically
+after the extension exits. Neither importer needs background services.

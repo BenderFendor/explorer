@@ -30,6 +30,8 @@ jobs:
         run: |
           cargo check --manifest-path scripts/extensions/import_annotations/Cargo.toml
           cargo check --manifest-path scripts/extensions/organize_folder/Cargo.toml
+          cargo test --manifest-path scripts/extensions/pinterest_import/Cargo.toml
+          cargo check --manifest-path scripts/extensions/cosmos_import/Cargo.toml
       - name: Commit formatted sources
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
