@@ -64,7 +64,9 @@ pub fn rebuild(root:&Path)->Result<usize,String> {
                 if stack.len()<100000 {stack.push(path);}
             } else if kind.is_file(){
                 let Ok(meta)=child.metadata() else {continue;};
-                let modified=stamp(meta.modified());
+                let modified=stamp(meta.modified()).max(stamp(
+                    fs::metadata(crate::image_metadata::metadata_path(&path)).and_then(|m|m.modified())
+                ));
                 let len=meta.len();
                 if let Some(old)=prior.get(&path).filter(|d|d.modified==modified&&d.len==len){
                     docs.push(old.clone());

@@ -107,6 +107,7 @@ pub fn save_key_bookmarks(
 #[serde(default)]
 pub struct UiPreferences {
     pub view: String,
+    pub gallery_mode: String,
     pub zoom: f64,
     pub hidden: bool,
     pub sidebar: bool,
@@ -117,6 +118,7 @@ impl Default for UiPreferences {
     fn default() -> Self {
         Self {
             view: "Grid".into(),
+            gallery_mode: "masonry".into(),
             zoom: 1.0,
             hidden: true,
             sidebar: true,

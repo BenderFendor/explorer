@@ -273,6 +273,22 @@ fn files(mut state: Explorer, command: &Command) -> bool {
                 match result {Ok(message)=>{state.revision+=1;state.notify(message,false);},Err(e)=>state.notify(format!("Exiv2: {e}"),true)}
             } else {state.notify("Select an image",true);}
         }
+        Command::BoardSize(width) => {
+            if (state.gallery_mode)() != GalleryMode::Board {
+                state.notify("Select :gallery_mode board first",true);
+                return true;
+            }
+            let result=(|| -> Result<(),String>{
+                let width=width.parse::<f64>().map_err(|e|e.to_string())?;
+                if !width.is_finite() || !(80.0..=2000.0).contains(&width) {
+                    return Err("Card width must be 80–2000 pixels".into());
+                }
+                let rect=state.gallery_layout.read().rects.get(state.index()).cloned().ok_or("No card selected")?;
+                let path=state.cursor_entry().ok_or("No card selected")?.path;
+                crate::gallery_layout::move_card(&state.current(),&path,rect.x,rect.y,width).map_err(|e|e.to_string())
+            })();
+            match result {Ok(())=>{state.revision+=1;state.notify("Card resized",false);},Err(e)=>state.notify(e,true)}
+        }
         Command::BoardMove(position) => {
             if (state.gallery_mode)() != GalleryMode::Board {
                 state.notify("Select :gallery_mode board first", true);
@@ -503,6 +519,7 @@ fn display(mut state: Explorer, command: &Command) -> bool {
     state.set_cursor(index);
     let settings = crate::prefs::UiPreferences {
         view: format!("{:?}", (state.view)()),
+        gallery_mode: (state.gallery_mode)().label().to_owned(),
         zoom: (state.zoom)(),
         hidden: (state.hidden)(),
         sidebar: (state.sidebar)(),

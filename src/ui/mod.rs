@@ -55,7 +55,12 @@ pub fn app() -> Element {
         }
     });
     let view = use_signal(move || initial_view);
-    let gallery_mode = use_signal(|| GalleryMode::Masonry);
+    let initial_gallery_mode=match ui_prefs.gallery_mode.as_str(){
+        "grid"=>GalleryMode::Grid,
+        "board"=>GalleryMode::Board,
+        _=>GalleryMode::Masonry,
+    };
+    let gallery_mode=use_signal(move ||initial_gallery_mode);
     let zoom = use_signal(move || initial_zoom);
     let sidebar = use_signal(move || initial_sidebar);
     let preview = use_signal(move || initial_preview);

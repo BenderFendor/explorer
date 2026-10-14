@@ -40,6 +40,7 @@ impl GalleryLayout {
     pub fn visible(&self,scroll:f64,height:f64)->Vec<usize> {
         self.rects.iter().enumerate().filter(|(_,r)|r.y+r.h>=scroll-250.0 && r.y<=scroll+height+250.0).map(|(i,_)|i).collect()
     }
+    #[allow(dead_code)]
     pub fn hit(&self,x:f64,y:f64)->Option<usize>{
         // Last drawn card is topmost on overlapping boards.
         self.rects.iter().enumerate().rev().find(|(_,r)|x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h).map(|(i,_)|i)
@@ -61,6 +62,9 @@ pub fn move_card(folder:&Path,file:&Path,x:f64,y:f64,width:f64)->std::io::Result
     let name=file.file_name().ok_or_else(||std::io::Error::other("Missing filename"))?.to_string_lossy().to_string();
     if !board.cards.iter().any(|c|c.file==name){board.cards.push(Card{file:name.clone(),..Card::default()});}
     let card=board.cards.iter_mut().find(|c|c.file==name).unwrap();
+    if !x.is_finite() || !y.is_finite() || !width.is_finite() {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput,"Card coordinates must be finite"));
+    }
     card.x=x.clamp(0.0,100000.0) as f32;card.y=y.clamp(0.0,100000.0) as f32;
     card.width=width.clamp(80.0,2000.0) as f32;
     image_metadata::save_board(folder,&board)
