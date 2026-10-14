@@ -124,7 +124,7 @@ fn PlaceLink(
 
 #[component]
 fn Preferences() -> Element {
-    let state = use_context::<Explorer>();
+    let mut state = use_context::<Explorer>();
     rsx! {
         div { class: "preferences",
             span { class: "preference", title: "Cycle Matugen, light, and dark",
