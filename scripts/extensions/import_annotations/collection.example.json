@@ -1,0 +1,12 @@
+{
+  "items": [
+    {
+      "file": "reference-01.jpg",
+      "title": "Architecture study",
+      "caption": "Concrete stairwell at dusk",
+      "source": "https://example.org/original-pin-or-web-page",
+      "tags": ["architecture", "reference", "brutalism"],
+      "notes": "Consider the lighting and material contrast."
+    }
+  ]
+}

@@ -43,6 +43,27 @@ The D-Bus service answers "Show in folder" from browsers and other apps, which o
 - Gallery (`Ctrl+4`, `:gallery`, or `zg` to toggle): image-only overview preserving the current folder sort; Enter or double-click focuses the original image, with a filmstrip. Escape returns to the overview. In the gallery, h/l and left/right step between images; i toggles focus metadata. Zoom uses +, -, or Ctrl+wheel. Return to the prior view with `zg`.
 - Matugen colours from `~/.config/matugen/colors.css`, plus light and dark themes. Hover the sidebar foot to switch the theme or turn motion off.
 
+## File-first collections and Rust extensions
+
+Pinned folders use the same GTK bookmarks file as Thunar. The collapsible
+Quick Access section shows recent files and frequently visited folders.
+History is kept locally in `$XDG_STATE_HOME/explorer/history.json` (at most
+256 entries). Set `EXPLORER_DISABLE_HISTORY=1` to stop recording and run
+`:clear_history` to erase prior history. Keyboard bookmarks persist between runs.
+
+Gallery annotations can be changed in the focused image viewer or through
+`:title`, `:caption`, `:source`, `:tags`, `:note`, and `:creator`.
+Explorer stores these annotations in the hidden folder-local `.explorer/metadata`
+directory. Existing EXIF/XMP image bytes are not altered; native XMP
+read/write is not yet implemented. A `.explorer/board.json` data schema
+is available for future manually arranged boards, but no board canvas yet.
+
+Custom importers and organizers can be written as separate Rust binaries,
+installed via JSON manifests in `~/.config/explorer/extensions`,
+listed with `:scripts` and run with `:script NAME ARGUMENTS`. Extensions
+are trusted programs, not sandboxed plugins. See [the extension protocol](docs/extensions.md)
+and the [sample annotations importer](scripts/extensions/import_annotations).
+
 ## Keys
 
 Press `?` in the app for the full list.

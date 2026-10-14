@@ -1,0 +1,6 @@
+{
+  "api_version": 1,
+  "name": "import_annotations",
+  "description": "Import scraped image captions, provenance and tags",
+  "executable": "/absolute/path/to/explorer-import-annotations"
+}
