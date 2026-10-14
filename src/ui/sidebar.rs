@@ -155,20 +155,20 @@ fn DeviceLink(device:crate::devices::Device,refresh:Signal<Places>)->Element {
                 },
                 "{device.label}"
             }
-            span {class:"side-action",title:if device.mount.is_some(){"Unmount device"}else{"Mount device"},
+            span {class:"side-action",title:if is_mounted{"Unmount device"}else{"Mount device"},
                 onclick:move |event|{
                     event.stop_propagation();
-                    let result=if device.mount.is_some(){crate::devices::unmount(&block_action)}else{crate::devices::mount(&block_action).map(|_|())};
+                    let result=if is_mounted{crate::devices::unmount(&block_action)}else{crate::devices::mount(&block_action).map(|_|())};
                     match result {Ok(())=>refresh.set(places::load()),Err(e)=>state.notify(e,true)}
                 },
-                if device.mount.is_some(){"⏏"}else{"+"}
+                if is_mounted{"⏏"}else{"+"}
             }
             if is_removable {
                 span {class:"side-action",title:"Safely power off removable drive",
                     onclick:move |event|{
                         event.stop_propagation();
                         let result=if power_block.exists() {
-                            if device.mount.is_some() {
+                            if is_mounted {
                                 crate::devices::unmount(&power_block).and_then(|_|crate::devices::eject(&power_block))
                             } else {crate::devices::eject(&power_block)}
                         } else {Err("Drive is no longer connected".into())};
