@@ -10,6 +10,7 @@ pub struct Options {
     pub dbus_service: bool,
     /// Opens this item's folder with the item under the cursor.
     pub select: Option<PathBuf>,
+    pub properties: Option<PathBuf>,
 }
 
 impl Options {
@@ -45,7 +46,7 @@ pub fn initialize() -> Result<bool, String> {
         .any(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "Usage: explorer [DIRECTORY] [--renderer=cpu|gpu] [--screenshot[=FILE.png] | --bench]\n\n--renderer picks software (cpu) or graphics-card (gpu, default) drawing.\n           EXPLORER_RENDERER sets the same choice.\n--screenshot saves explorer-screenshot.png and exits, without desktop tools.\n--bench      scrolls the app off-screen and prints renderer cost as JSON.\n--select=PATH opens PATH's folder with PATH selected.\n--dbus-service runs org.freedesktop.FileManager1 (\"Show in folder\")."
+            "Usage: explorer [DIRECTORY] [--renderer=cpu|gpu] [--screenshot[=FILE.png] | --bench]\n\n--renderer picks software (cpu) or graphics-card (gpu, default) drawing.\n           EXPLORER_RENDERER sets the same choice.\n--screenshot saves explorer-screenshot.png and exits, without desktop tools.\n--bench      scrolls the app off-screen and prints renderer cost as JSON.\n--select=PATH opens PATH's folder with PATH selected.\n--properties=PATH opens the actual file properties inspector.\n--dbus-service runs org.freedesktop.FileManager1 (\"Show in folder\")."
         );
         return Ok(false);
     }
@@ -73,6 +74,14 @@ fn parse(arguments: Vec<OsString>) -> Result<Options, String> {
                 .to_str()
                 .and_then(|text| text.strip_prefix("--select="))
             {
+                options.select = Some(PathBuf::from(path));
+                continue;
+            }
+            if let Some(path) = argument
+                .to_str()
+                .and_then(|text| text.strip_prefix("--properties="))
+            {
+                options.properties = Some(PathBuf::from(path));
                 options.select = Some(PathBuf::from(path));
                 continue;
             }

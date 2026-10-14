@@ -17,6 +17,7 @@ pub enum Overlay {
     Console(String),
     SaveAs(Arc<crate::imports::Pending>),
     Confirm(Vec<PathBuf>),
+    Properties(PathBuf),
     Menu(Menu),
     Help,
 }

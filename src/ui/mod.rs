@@ -89,7 +89,7 @@ pub fn app() -> Element {
         preview: use_signal(|| false),
         theme: use_signal(Theme::default),
         motion: use_signal(|| true),
-        overlay: use_signal(|| Overlay::None),
+        overlay: use_signal(|| crate::cli::options().properties.clone().map(Overlay::Properties).unwrap_or(Overlay::None)),
         jobs: use_signal(Vec::new),
         notice: use_signal(|| None),
         keys: use_signal(String::new),

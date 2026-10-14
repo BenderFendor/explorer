@@ -82,6 +82,11 @@ fn places(mut state: Explorer, command: &Command) -> bool {
                 report(state, crate::places::pin(&folder.path));
             }
         }
+        Command::Properties => {
+            if let Some(entry) = state.cursor_entry() {
+                state.overlay.set(Overlay::Properties(entry.path));
+            }
+        }
         Command::ClearHistory => {
             report(state, crate::history::clear().map_err(|err| err.to_string()));
         }

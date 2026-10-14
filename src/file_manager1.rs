@@ -56,9 +56,14 @@ impl FileManager {
         }
     }
 
-    /// There is no properties dialog; the folder opens with the item selected.
-    fn show_item_properties(&self, uris: Vec<String>, startup_id: &str) {
-        self.show_items(uris, startup_id);
+    /// Opens Explorer's properties inspector for each local item.
+    fn show_item_properties(&self, uris: Vec<String>, _startup_id: &str) {
+        self.touch();
+        for item in paths(&uris) {
+            let mut properties = std::ffi::OsString::from("--properties=");
+            properties.push(&item);
+            open(&[properties]);
+        }
     }
 }
 

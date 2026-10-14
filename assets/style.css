@@ -232,3 +232,10 @@ input { font-family: inherit; font-size: inherit; }
 .gallery-annotation-label { cursor: pointer; color: var(--muted); max-width: 40%;
     overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .gallery-annotation-label:hover { color: var(--accent); }
+
+/* Properties inspector responds to the desktop FileManager1 D-Bus interface. */
+.property-dialog { width: 470px; max-width: 92%; }
+.property-title { font-size: 18px; font-weight: 600; margin-bottom: 16px !important; }
+.property-line { display: flex; flex-wrap: wrap; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.property-line span:first-child { width: 108px; flex-shrink: 0; color: var(--muted); }
+.property-line span:last-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }

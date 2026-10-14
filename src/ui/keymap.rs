@@ -67,6 +67,7 @@ pub enum Command {
     EmptyTrash,
     PinCurrent,
     PinSelection,
+    Properties,
     ClearHistory,
     ListScripts,
     RunScript(String),

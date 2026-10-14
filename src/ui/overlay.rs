@@ -15,6 +15,7 @@ pub fn Overlays() -> Element {
     rsx! {
         match overlay {
             Overlay::Confirm(paths) => rsx! { Confirm { label: commands::describe(&paths) } },
+            Overlay::Properties(path) => rsx! { Properties { path } },
             Overlay::Menu(menu) => rsx! { ContextMenu { menu } },
             Overlay::Help => rsx! { Help {} },
             Overlay::None | Overlay::Console(_) | Overlay::SaveAs(_) => rsx! {},
@@ -92,6 +93,51 @@ fn SaveAs(pending: std::sync::Arc<crate::imports::Pending>) -> Element {
 }
 
 #[component]
+fn Properties(path: std::path::PathBuf) -> Element {
+    let mut state = use_context::<Explorer>();
+    let filename = path.file_name().map(|x| x.to_string_lossy().into_owned()).unwrap_or_else(|| "/".into());
+    let metadata = std::fs::symlink_metadata(&path).ok();
+    let kind = if metadata.as_ref().is_some_and(|m| m.is_dir()) { "Folder".to_owned() }
+        else if metadata.as_ref().is_some_and(|m| m.file_type().is_symlink()) { "Symbolic link".to_owned() }
+        else { mime_guess::from_path(&path).first_raw().unwrap_or("application/octet-stream").to_owned() };
+    let size = metadata.as_ref().map(|m| format!("{} bytes", m.len())).unwrap_or_else(|| "Unavailable".into());
+    let permissions = metadata.as_ref().map(|m| {
+        use std::os::unix::fs::PermissionsExt;
+        format!("{:o}", m.permissions().mode() & 0o7777)
+    }).unwrap_or_else(|| "Unavailable".into());
+    let modified = metadata.and_then(|m| m.modified().ok())
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|span| format!("Unix timestamp: {}", span.as_secs()))
+        .unwrap_or_else(|| "Unavailable".into());
+    let image_info = crate::image_metadata::load(&path);
+    let tags_text = image_info.tags.join(", ");
+    rsx! {
+        div { class: "scrim fade",
+            div { class: "dialog property-dialog pop", role: "dialog",
+                p { class: "property-title", "{filename}" }
+                div { class: "property-line", span { "Location" } span { "{path.display()}" } }
+                div { class: "property-line", span { "Type" } span { "{kind}" } }
+                div { class: "property-line", span { "Size" } span { "{size}" } }
+                div { class: "property-line", span { "Permissions" } span { "{permissions}" } }
+                div { class: "property-line", span { "Modified" } span { "{modified}" } }
+                if !image_info.source.is_empty() {
+                    div { class: "property-line", span { "Source" } span { "{image_info.source}" } }
+                }
+                if !image_info.tags.is_empty() {
+                    div { class: "property-line", span { "Tags" } span { "{tags_text}" } }
+                }
+                div { class: "dialog-actions",
+                    span { class: "dialog-button",
+                        onclick: move |_| { state.overlay.set(Overlay::None); state.refocus(); },
+                        "Close"
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
 fn Confirm(label: String) -> Element {
     let mut state = use_context::<Explorer>();
     rsx! {
@@ -140,6 +186,7 @@ fn item_choices(folder: bool, in_trash: bool) -> Vec<Choice> {
     } else {
         choices.push(("Move to trash", "Del", Command::Trash));
     }
+    choices.push(("Properties", "", Command::Properties));
     choices.push(("Delete permanently", "dD", Command::Delete));
     choices
 }
