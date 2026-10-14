@@ -17,6 +17,7 @@ pub fn Overlays() -> Element {
             Overlay::Confirm(paths) => rsx! { Confirm { label: commands::describe(&paths) } },
             Overlay::Properties(path) => rsx! { Properties { path } },
             Overlay::SearchResults(query,results) => rsx! { SearchResults { query, results } },
+            Overlay::AppChooser(files) => rsx! { AppChooser { files } },
             Overlay::Menu(menu) => rsx! { ContextMenu { menu } },
             Overlay::Help => rsx! { Help {} },
             Overlay::None | Overlay::Console(_) | Overlay::SaveAs(_) => rsx! {},
@@ -86,6 +87,36 @@ fn SaveAs(pending: std::sync::Arc<crate::imports::Pending>) -> Element {
                         Key::Enter => commands::save_as(state, pending.clone(), name()),
                         Key::Escape => { state.overlay.set(Overlay::None); state.refocus(); }
                         _ => {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn AppChooser(files:Vec<std::path::PathBuf>)->Element {
+    let mut state=use_context::<Explorer>();
+    let apps=files.first().map(|p|crate::app_chooser::list(p)).unwrap_or_default();
+    rsx! {
+        div {class:"scrim fade",
+            div {class:"dialog search-dialog pop",role:"dialog",
+                div {class:"search-heading",
+                    span {"Open With"}
+                    span {class:"dialog-button",onclick:move |_|state.overlay.set(Overlay::None),"Close"}
+                }
+                div {class:"search-hits",
+                    for app in apps {
+                        div {class:"search-hit",key:"{app.id}",title:"{app.desktop.display()}",
+                            onclick:{
+                                let files=files.clone();
+                                move |_|{
+                                    let result=crate::app_chooser::launch(&app,&files);
+                                    match result {Ok(())=>state.overlay.set(Overlay::None),Err(e)=>state.notify(e,true)}
+                                }
+                            },
+                            "{app.name}"
+                        }
                     }
                 }
             }
@@ -221,7 +252,7 @@ fn item_choices(folder: bool, in_trash: bool) -> Vec<Choice> {
         choices.push(("Open in new tab", "middle", Command::NewTab));
         choices.push(("Pin folder", "", Command::PinSelection));
     } else {
-        choices.push(("Open with…", "r", Command::Console("open_with ")));
+        choices.push(("Open with…", "", Command::ChooseApp));
         choices.push(("Edit caption", "", Command::Console("caption ")));
         choices.push(("Edit source", "", Command::Console("source ")));
         choices.push(("Edit tags", "", Command::Console("tags ")));

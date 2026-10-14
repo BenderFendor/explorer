@@ -236,6 +236,10 @@ fn files(mut state: Explorer, command: &Command) -> bool {
             let result = operations::create(&folder, name, folder_kind);
             select_created(state, result);
         }
+        Command::ChooseApp => {
+            let files=state.targets();
+            if !files.is_empty(){state.overlay.set(Overlay::AppChooser(files));}
+        }
         Command::OpenWith(program) => report(
             state,
             operations::run_with(program, &folder, &state.targets()),

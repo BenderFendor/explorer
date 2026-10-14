@@ -25,6 +25,7 @@ pub struct Places {
     pub frequent: Vec<Place>,
     pub recent: Vec<Place>,
     pub devices: Vec<Place>,
+    pub mountable: Vec<crate::devices::Device>,
 }
 
 pub fn load() -> Places {
@@ -72,6 +73,7 @@ pub fn load() -> Places {
         frequent,
         recent,
         devices,
+        mountable: crate::devices::list(),
     }
 }
 

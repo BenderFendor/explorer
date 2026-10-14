@@ -8,6 +8,8 @@ mod filesystem;
 mod history;
 mod gallery_layout;
 mod search;
+mod devices;
+mod app_chooser;
 mod icons;
 mod image_metadata;
 mod imports;

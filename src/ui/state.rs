@@ -20,6 +20,7 @@ pub enum Overlay {
     Confirm(Vec<PathBuf>),
     Properties(PathBuf),
     SearchResults(String,Vec<PathBuf>),
+    AppChooser(Vec<PathBuf>),
     Menu(Menu),
     Help,
 }

@@ -71,7 +71,12 @@ pub fn Sidebar() -> Element {
             div { class: "side-gap" }
             PlaceLink { place: Place { name: "File system".into(), path: PathBuf::from("/") }, current: current.clone(), quiet: true }
             for place in shown.devices.iter().cloned() {
-                PlaceLink { key: "d{place.path.display()}", place, current: current.clone(), quiet: true }
+                if !shown.mountable.iter().any(|device| device.mount.as_ref()==Some(&place.path)) {
+                    PlaceLink { key: "d{place.path.display()}", place, current: current.clone(), quiet: true }
+                }
+            }
+            for device in shown.mountable.iter().cloned() {
+                DeviceLink { key: "dev{device.block.display()}", device, refresh: places }
             }
             PlaceLink { place: Place { name: "Trash".into(), path: operations::trash_files() }, current: current.clone(), quiet: true }
             Preferences {}
@@ -128,6 +133,36 @@ fn PlaceLink(
     }
 }
 
+#[component]
+fn DeviceLink(device:crate::devices::Device,refresh:Signal<Places>)->Element {
+    let mut state=use_context::<Explorer>();
+    let mut refresh=refresh;
+    let block=device.block.clone();
+    let block_action=device.block.clone();
+    let mount=device.mount.clone();
+    rsx! {
+        div {class:"place quiet",title:"{device.block.display()}",
+            span {class:"place-title",
+                onclick:move |_|{
+                    if let Some(path)=mount.clone(){state.visit(path);}
+                    else {match crate::devices::mount(&block){
+                        Ok(path)=>{refresh.set(places::load());state.visit(path);}
+                        Err(e)=>state.notify(e,true)
+                    }}
+                },
+                "{device.label}"
+            }
+            span {class:"side-action",title:if device.mount.is_some(){"Unmount device"}else{"Mount device"},
+                onclick:move |event|{
+                    event.stop_propagation();
+                    let result=if device.mount.is_some(){crate::devices::unmount(&block_action)}else{crate::devices::mount(&block_action).map(|_|())};
+                    match result {Ok(())=>refresh.set(places::load()),Err(e)=>state.notify(e,true)}
+                },
+                if device.mount.is_some(){"⏏"}else{"+"}
+            }
+        }
+    }
+}
 #[component]
 fn Preferences() -> Element {
     let mut state = use_context::<Explorer>();
