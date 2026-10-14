@@ -107,15 +107,33 @@ fn AppChooser(files:Vec<std::path::PathBuf>)->Element {
                 }
                 div {class:"search-hits",
                     for app in apps {
-                        div {class:"search-hit",key:"{app.id}",title:"{app.desktop.display()}",
-                            onclick:{
-                                let files=files.clone();
-                                move |_|{
-                                    let result=crate::app_chooser::launch(&app,&files);
-                                    match result {Ok(())=>state.overlay.set(Overlay::None),Err(e)=>state.notify(e,true)}
-                                }
-                            },
-                            "{app.name}"
+                        div {class:"search-hit app-choice",key:"{app.id}",title:"{app.desktop.display()}",
+                            span {onclick:{
+                                    let files=files.clone();
+                                    let app=app.clone();
+                                    move |_|{
+                                        let result=crate::app_chooser::launch(&app,&files);
+                                        match result {Ok(())=>state.overlay.set(Overlay::None),Err(e)=>state.notify(e,true)}
+                                    }
+                                },
+                                "{app.name}"
+                            }
+                            span {class:"app-default-action",title:"Make default for this MIME type",
+                                onclick:{
+                                    let file=files.first().cloned();
+                                    let app=app.clone();
+                                    move |event|{
+                                        event.stop_propagation();
+                                        if let Some(ref path)=file {
+                                            match crate::app_chooser::set_default(&app,path) {
+                                                Ok(())=>state.notify(format!("Default app: {}",app.name),false),
+                                                Err(e)=>state.notify(e,true)
+                                            }
+                                        }
+                                    }
+                                },
+                                "Always"
+                            }
                         }
                     }
                 }

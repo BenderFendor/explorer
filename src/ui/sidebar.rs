@@ -140,6 +140,7 @@ fn DeviceLink(device:crate::devices::Device,refresh:Signal<Places>)->Element {
     let block=device.block.clone();
     let block_action=device.block.clone();
     let mount=device.mount.clone();
+    let power_block=device.block.clone();
     rsx! {
         div {class:"place quiet",title:"{device.block.display()}",
             span {class:"place-title",
@@ -159,6 +160,23 @@ fn DeviceLink(device:crate::devices::Device,refresh:Signal<Places>)->Element {
                     match result {Ok(())=>refresh.set(places::load()),Err(e)=>state.notify(e,true)}
                 },
                 if device.mount.is_some(){"⏏"}else{"+"}
+            }
+            if device.removable {
+                span {class:"side-action",title:"Safely power off removable drive",
+                    onclick:move |event|{
+                        event.stop_propagation();
+                        let result=if power_block.exists() {
+                            if device.mount.is_some() {
+                                crate::devices::unmount(&power_block).and_then(|_|crate::devices::eject(&power_block))
+                            } else {crate::devices::eject(&power_block)}
+                        } else {Err("Drive is no longer connected".into())};
+                        match result {
+                            Ok(())=>{refresh.set(places::load());state.notify("Device powered off",false);},
+                            Err(e)=>state.notify(e,true)
+                        }
+                    },
+                    "⏻"
+                }
             }
         }
     }

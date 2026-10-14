@@ -8,6 +8,7 @@ pub struct Device {
     pub label:String,
     pub block:PathBuf,
     pub mount:Option<PathBuf>,
+    pub removable:bool,
 }
 #[derive(Deserialize)]
 struct Listing {blockdevices:Vec<Block>}
@@ -35,7 +36,7 @@ pub fn parse(text:&str)->Vec<Device>{
         let label=b.label.filter(|x|!x.is_empty()).unwrap_or_else(||{
             block.file_name().unwrap_or_default().to_string_lossy().to_string()
         });
-        Some(Device{label,block,mount})
+        Some(Device{label,block,mount,removable})
     }).collect()
 }
 pub fn list()->Vec<Device>{
