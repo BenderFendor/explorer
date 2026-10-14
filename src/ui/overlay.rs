@@ -131,7 +131,7 @@ fn SearchResults(query:String,results:Vec<std::path::PathBuf>)->Element {
         div { class:"scrim fade",
             div {class:"dialog search-dialog pop",role:"dialog",
                 div {class:"search-heading",
-                    span {"Search: {query} · {} results",results.len()}
+                    span {"Search: {query} · {results.len()} results"}
                     span {class:"dialog-button",onclick:move |_|state.overlay.set(Overlay::None),"Close"}
                 }
                 div {class:"search-hits",
