@@ -27,7 +27,8 @@ pub fn app() -> Element {
     let navigation = use_signal(|| Navigation::new(initial.clone()));
     let revision = use_signal(|| 0_u64);
     let query = use_signal(String::new);
-    let hidden = use_signal(|| true);
+    let ui_prefs = use_hook(prefs::load_ui);
+    let hidden = use_signal(|| ui_prefs.hidden);
     let order = use_signal(|| {
         prefs::load_order().unwrap_or(Order {
             sort: Sort::Modified,
@@ -43,7 +44,12 @@ pub fn app() -> Element {
                 .unwrap_or_else(|error| Err(error.to_string()))
         }
     });
-    let view = use_signal(View::default);
+    let view = use_signal(|| match ui_prefs.view.as_str() {
+        "List" => View::List,
+        "Columns" => View::Columns,
+        "Gallery" => View::Gallery,
+        _ => View::Grid,
+    });
     let entries = use_memo(move || {
         let current = navigation.read().current().to_path_buf();
         match &*listing.read() {
@@ -72,7 +78,7 @@ pub fn app() -> Element {
         gallery_focus: use_signal(|| false),
         gallery_zoom: use_signal(|| 1.0),
         gallery_info: use_signal(|| true),
-        zoom: use_signal(|| 1.0),
+        zoom: use_signal(|| ui_prefs.zoom.clamp(0.6, 4.5)),
         cursor: use_signal(|| Cursor {
             path: crate::cli::options().select.clone(),
             index: 0,
@@ -85,8 +91,8 @@ pub fn app() -> Element {
         scroll: use_signal(|| 0.0),
         target: use_signal(|| 0.0),
         window: use_signal(Window::default),
-        sidebar: use_signal(|| true),
-        preview: use_signal(|| false),
+        sidebar: use_signal(|| ui_prefs.sidebar),
+        preview: use_signal(|| ui_prefs.preview),
         theme: use_signal(Theme::default),
         motion: use_signal(|| true),
         overlay: use_signal(|| crate::cli::options().properties.clone().map(Overlay::Properties).unwrap_or(Overlay::None)),

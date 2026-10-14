@@ -358,6 +358,16 @@ fn display(mut state: Explorer, command: &Command) -> bool {
     }
     let index = state.index();
     state.set_cursor(index);
+    let settings = crate::prefs::UiPreferences {
+        view: format!("{:?}", (state.view)()),
+        zoom: (state.zoom)(),
+        hidden: (state.hidden)(),
+        sidebar: (state.sidebar)(),
+        preview: (state.preview)(),
+    };
+    if let Err(error) = crate::prefs::save_ui(&settings) {
+        state.notify(format!("Could not save display settings: {error}"), true);
+    }
     true
 }
 

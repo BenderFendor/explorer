@@ -94,3 +94,33 @@ pub fn save_key_bookmarks(bookmarks: &std::collections::HashMap<char, PathBuf>) 
     fs::write(&temporary, serde_json::to_vec_pretty(bookmarks).map_err(std::io::Error::other)?)?;
     fs::rename(temporary, path)
 }
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct UiPreferences {
+    pub view: String,
+    pub zoom: f64,
+    pub hidden: bool,
+    pub sidebar: bool,
+    pub preview: bool,
+}
+
+impl Default for UiPreferences {
+    fn default() -> Self {
+        Self { view: "Grid".into(), zoom: 1.0, hidden: true, sidebar: true, preview: false }
+    }
+}
+
+pub fn load_ui() -> UiPreferences {
+    let file = state_path().with_file_name("ui.json");
+    fs::read(file).ok().and_then(|bytes| serde_json::from_slice(&bytes).ok()).unwrap_or_default()
+}
+
+pub fn save_ui(value: &UiPreferences) -> std::io::Result<()> {
+    let file = state_path().with_file_name("ui.json");
+    fs::create_dir_all(file.parent().unwrap_or(std::path::Path::new(".")))?;
+    let tmp = file.with_extension("json.tmp");
+    let bytes = serde_json::to_vec_pretty(value).map_err(std::io::Error::other)?;
+    fs::write(&tmp, bytes)?;
+    fs::rename(tmp, file)
+}
