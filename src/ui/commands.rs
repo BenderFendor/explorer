@@ -250,6 +250,23 @@ fn files(mut state: Explorer, command: &Command) -> bool {
             state.scroll.set(0.0);
             state.target.set(0.0);
         }
+        Command::XmpWrite | Command::XmpRead => {
+            if let Some(entry) = state.cursor_entry().filter(crate::thumbnails::is_image) {
+                let result = match command {
+                    Command::XmpWrite => crate::image_metadata::write_xmp(&entry.path).map(|()| "Embedded XMP updated".to_string()),
+                    _ => crate::image_metadata::read_xmp(&entry.path).and_then(|embedded| {
+                        let mut existing=crate::image_metadata::load(&entry.path);
+                        if !embedded.title.is_empty() && existing.title.is_empty() {existing.title=embedded.title;}
+                        if !embedded.caption.is_empty() && existing.caption.is_empty() {existing.caption=embedded.caption;}
+                        if !embedded.creator.is_empty() && existing.creator.is_empty() {existing.creator=embedded.creator;}
+                        if !embedded.source.is_empty() && existing.source.is_empty() {existing.source=embedded.source;}
+                        for tag in embedded.tags {if !existing.tags.contains(&tag){existing.tags.push(tag);}}
+                        crate::image_metadata::save(&entry.path,&existing).map(|()| "Embedded XMP imported".into())
+                    }),
+                };
+                match result {Ok(message)=>{state.revision+=1;state.notify(message,false);},Err(e)=>state.notify(format!("Exiv2: {e}"),true)}
+            } else {state.notify("Select an image",true);}
+        }
         Command::BoardMove(position) => {
             if (state.gallery_mode)() != GalleryMode::Board {
                 state.notify("Select :gallery_mode board first", true);

@@ -182,3 +182,68 @@ mod tests {
         );
     }
 }
+
+/// Read common embedded XMP fields via the optional Exiv2 system utility.
+/// Existing sidecars take precedence; this never requires the utility to start Explorer.
+pub fn read_xmp(image: &Path) -> io::Result<ImageMetadata> {
+    let output=std::process::Command::new("exiv2").arg("-Pkv").arg(image).output()?;
+    if !output.status.success() {return Err(io::Error::other(String::from_utf8_lossy(&output.stderr).into_owned()));}
+    let mut data=ImageMetadata::default();
+    for line in String::from_utf8_lossy(&output.stdout).lines() {
+        // Exiv2 -Pkv lines: Key  Type  Count  Value.
+        let mut fields=line.split_whitespace();
+        let Some(key)=fields.next() else {continue;};
+        let _type=fields.next();let _count=fields.next();
+        let value=fields.collect::<Vec<_>>().join(" ");
+        let value=value.strip_prefix("lang=\"x-default\" ").unwrap_or(&value).to_owned();
+        match key {
+            "Xmp.dc.title" => data.title=value,
+            "Xmp.dc.description" => data.caption=value,
+            "Xmp.dc.creator" => data.creator=value,
+            "Xmp.dc.source" => data.source=value,
+            "Xmp.dc.subject" => {if !data.tags.contains(&value){data.tags.push(value);}},
+            _ => {}
+        }
+    }
+    Ok(data)
+}
+
+/// Merge EXIF/IPTC/XMP without recompression using Exiv2. Writes to a sibling
+/// temporary copy then atomically replaces the original only on success.
+/// Sidecars remain the canonical store for notes and nonstandard fields.
+pub fn write_xmp(image:&Path)->io::Result<()> {
+    if !image.is_file() || image.is_symlink() {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput,"Select a regular image"));
+    }
+    let metadata=load(image);
+    // Exiv2 selects write format from extension: use same original suffix.
+    let tmp_name=format!(".explorer-xmp-{}.{}",std::process::id(),image.extension().unwrap_or_default().to_string_lossy());
+    let temp=image.with_file_name(tmp_name);
+    fs::copy(image,&temp)?;
+    let commands=[
+        ("Xmp.dc.title",&metadata.title),
+        ("Xmp.dc.description",&metadata.caption),
+        ("Xmp.dc.creator",&metadata.creator),
+        ("Xmp.dc.source",&metadata.source),
+    ];
+    let mut command=std::process::Command::new("exiv2");
+    for (key,value) in commands {
+        if !value.is_empty() {
+            // -M passes each metadatum modification as one argument (no shell).
+            command.arg("-M").arg(format!("set {key} {}",value.replace('\n'," ")));
+        }
+    }
+    for tag in &metadata.tags {
+        if !tag.is_empty(){command.arg("-M").arg(format!("add Xmp.dc.subject XmpBag {}",tag.replace('\n'," ")));}
+    }
+    let result=command.arg(&temp).output();
+    match result {
+        Ok(output) if output.status.success() => {
+            // Retain the original mode and mtime to avoid unwanted permission changes.
+            fs::set_permissions(&temp,fs::metadata(image)?.permissions())?;
+            fs::rename(&temp,image)
+        }
+        Ok(output) => {let _=fs::remove_file(&temp);Err(io::Error::other(String::from_utf8_lossy(&output.stderr).into_owned()))}
+        Err(e) => {let _=fs::remove_file(&temp);Err(e)}
+    }
+}

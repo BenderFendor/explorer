@@ -194,6 +194,8 @@ fn item_choices(folder: bool, in_trash: bool) -> Vec<Choice> {
         choices.push(("Edit caption", "", Command::Console("caption ")));
         choices.push(("Edit source", "", Command::Console("source ")));
         choices.push(("Edit tags", "", Command::Console("tags ")));
+        choices.push(("Embed metadata as XMP", "", Command::XmpWrite));
+        choices.push(("Import embedded XMP", "", Command::XmpRead));
     }
     choices.extend([
         ("Cut", "dd", Command::Cut),

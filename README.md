@@ -146,3 +146,7 @@ Use `scripts/headless_wayland.sh COMMAND` for window and clipboard tests. Its pr
 - "Open with" takes a typed command, not a list of installed applications.
 - Sorting, grid zoom, current view, sidebar/preview state, and keyboard bookmarks persist between runs. Tabs and marked selections reset when the app restarts.
 - Zooming moves the view back to the cursor.
+
+For optional embedded XMP import/export, install Exiv2 and use
+`:xmp_read` / `:xmp_write` on a selected image. Sidecars remain the source
+of truth; Exiv2 is not required for ordinary browsing.

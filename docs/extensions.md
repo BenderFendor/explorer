@@ -121,3 +121,17 @@ build it with `cargo build --release --manifest-path scripts/extensions/organize
 install its manifest with the absolute executable path, and use
 `:script organize_folder all` to process the open folder (or omit `all`
 to process the current selection). Image sidecars are preserved by the core.
+
+## Optional embedded XMP synchronization
+
+Metadata is local-first and stored in `.explorer/metadata/*.json`. Install
+the distribution's **Exiv2** command-line utility to enable `:xmp_read`
+(import embedded title, caption, tags, creator and source) or `:xmp_write`
+(write those standard XMP fields into the selected image). Explorer invokes
+the executable directly without a shell and writes to a sibling temporary copy
+before replacing the original. Notes and board coordinates stay in the JSON
+sidecar, because they do not have interoperable standard XMP fields.
+
+XMP write is explicit, never automatic. Back up valuable originals before
+batch use, because supported metadata fields and image formats vary across
+Exiv2 versions; unsuitable or read-only files should retain their sidecars.
