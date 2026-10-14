@@ -17,7 +17,7 @@ use crate::{
     theme::{self, Theme},
 };
 use dioxus_native::prelude::{dioxus_elements::input_data::MouseButton, *};
-use state::{Cursor, Explorer, Overlay};
+use state::{Cursor, Explorer, GalleryMode, Overlay};
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 use viewport::{View, Window};
 
@@ -55,6 +55,11 @@ pub fn app() -> Element {
         }
     });
     let view = use_signal(move || initial_view);
+    let gallery_mode = use_signal(|| GalleryMode::Masonry);
+    let zoom = use_signal(move || initial_zoom);
+    let sidebar = use_signal(move || initial_sidebar);
+    let preview = use_signal(move || initial_preview);
+    let window = use_signal(Window::default);
     let entries = use_memo(move || {
         let current = navigation.read().current().to_path_buf();
         match &*listing.read() {
@@ -69,6 +74,19 @@ pub fn app() -> Element {
             _ => Vec::new(),
         }
     });
+    let gallery_layout = use_memo(move || {
+        let _ = revision();
+        if view() != View::Gallery || gallery_mode() == GalleryMode::Grid {
+            return crate::gallery_layout::GalleryLayout::default();
+        }
+        let paths = entries().into_iter().map(|entry| entry.path).collect::<Vec<_>>();
+        let width = viewport::Layout::new(
+            window(), View::Gallery, sidebar(), preview(), zoom()
+        ).width;
+        // Track actual window size in the memo through the shared window signal below.
+        crate::gallery_layout::GalleryLayout::build(&paths, width, zoom(),
+            gallery_mode() == GalleryMode::Board, navigation.read().current())
+    });
     let state = Explorer {
         navigation,
         tabs: use_signal(|| vec![Navigation::new(initial.clone())]),
@@ -80,10 +98,12 @@ pub fn app() -> Element {
         order,
         view,
         gallery_previous: use_signal(View::default),
+        gallery_mode,
+        gallery_layout,
         gallery_focus: use_signal(|| false),
         gallery_zoom: use_signal(|| 1.0),
         gallery_info: use_signal(|| true),
-        zoom: use_signal(move || initial_zoom),
+        zoom,
         cursor: use_signal(|| Cursor {
             path: crate::cli::options().select.clone(),
             index: 0,
@@ -95,9 +115,9 @@ pub fn app() -> Element {
         thumbnails: use_signal(HashMap::new),
         scroll: use_signal(|| 0.0),
         target: use_signal(|| 0.0),
-        window: use_signal(Window::default),
-        sidebar: use_signal(move || initial_sidebar),
-        preview: use_signal(move || initial_preview),
+        window,
+        sidebar,
+        preview,
         theme: use_signal(Theme::default),
         motion: use_signal(|| true),
         overlay: use_signal(|| {
@@ -256,7 +276,11 @@ fn wheel(mut state: Explorer, delta: f64, x: f64, y: f64, zoom: bool) {
     if (state.view)() == View::Gallery && (state.gallery_focus)() {
         return;
     }
-    let target = layout.clamp(*state.target.peek() + delta, state.entries.peek().len());
+    let target = if (state.view)() == View::Gallery && (state.gallery_mode)() != GalleryMode::Grid {
+        (*state.target.peek() + delta).clamp(0.0, state.gallery_layout.read().max_scroll(layout.height))
+    } else {
+        layout.clamp(*state.target.peek() + delta, state.entries.peek().len())
+    };
     if target != *state.target.peek() {
         state.target.set(target);
     }
@@ -296,7 +320,9 @@ fn use_scrolling(mut state: Explorer) {
     use_effect(move || {
         let count = state.entries.read().len();
         let layout = state.layout();
-        let clamped = layout.clamp(*state.target.peek(), count);
+        let clamped = if (state.view)() == View::Gallery && (state.gallery_mode)() != GalleryMode::Grid {
+            (*state.target.peek()).clamp(0.0, state.gallery_layout.read().max_scroll(layout.height))
+        } else { layout.clamp(*state.target.peek(), count) };
         if clamped != *state.target.peek() {
             state.target.set(clamped);
         }

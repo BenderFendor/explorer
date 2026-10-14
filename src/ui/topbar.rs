@@ -17,6 +17,20 @@ pub fn Topbar() -> Element {
                 FilterField {}
             }
             Status {}
+            if (state.view)() == super::viewport::View::Gallery {
+                span { class: "gallery-mode-select",
+                    title: "Switch between grid, masonry and freeform board",
+                    onclick: move |_| {
+                        let next = match (state.gallery_mode)() {
+                            super::state::GalleryMode::Grid => "masonry",
+                            super::state::GalleryMode::Masonry => "board",
+                            super::state::GalleryMode::Board => "grid",
+                        };
+                        commands::run(state, super::keymap::Command::GalleryMode(next.into()));
+                    },
+                    "{(state.gallery_mode)().label()}"
+                }
+            }
             Tabs {}
         }
     }

@@ -1,4 +1,5 @@
 use super::viewport::{Layout, View, Window};
+use crate::gallery_layout::GalleryLayout;
 use crate::{
     filesystem::{Entry, Navigation, Order},
     operations::{Progress, Transfer},
@@ -73,6 +74,12 @@ impl Cursor {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum GalleryMode { Grid, Masonry, Board }
+impl GalleryMode {
+    pub fn label(self)-> &'static str {match self { Self::Grid=>"grid",Self::Masonry=>"masonry",Self::Board=>"board" }}
+}
+
 #[derive(Clone, Copy)]
 pub struct Explorer {
     pub navigation: Signal<Navigation>,
@@ -85,6 +92,8 @@ pub struct Explorer {
     pub order: Signal<Order>,
     pub view: Signal<View>,
     pub gallery_previous: Signal<View>,
+    pub gallery_mode: Signal<GalleryMode>,
+    pub gallery_layout: Memo<GalleryLayout>,
     pub gallery_focus: Signal<bool>,
     pub gallery_zoom: Signal<f64>,
     pub gallery_info: Signal<bool>,
@@ -152,7 +161,9 @@ impl Explorer {
         });
         let count = entries.len();
         drop(entries);
-        let target = self.layout().follow(*self.target.peek(), index, count);
+        let target = if (self.view)() == View::Gallery && (self.gallery_mode)() != GalleryMode::Grid {
+            self.gallery_layout.read().follow(index, *self.target.peek(), self.layout().height)
+        } else { self.layout().follow(*self.target.peek(), index, count) };
         self.target.set(target);
     }
 

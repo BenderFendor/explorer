@@ -50,6 +50,9 @@ fn Items() -> Element {
     let state = use_context::<Explorer>();
     let layout = state.layout();
     let view = (state.view)();
+    if view == View::Gallery && (state.gallery_mode)() != super::state::GalleryMode::Grid {
+        return rsx! { MasonryItems {} };
+    }
     let entries = state.entries.read();
     let count = entries.len();
     let scroll = (state.scroll)();
@@ -91,6 +94,47 @@ fn Items() -> Element {
             }
         }
         Scrollbar { layout, count, scroll }
+    }
+}
+
+
+/// Aspect-aware masonry and freeform board. Only visible card rectangles are mounted.
+#[component]
+fn MasonryItems() -> Element {
+    let state = use_context::<Explorer>();
+    let geometry = state.gallery_layout.read();
+    let entries = state.entries.read();
+    let scroll = (state.scroll)();
+    let indices = geometry.visible(scroll, state.layout().height);
+    let current = state.index();
+    let marks = state.marks.read();
+    let height = geometry.height;
+    let style = format!("height:{height}px;top:-{scroll}px;position:relative;--zoom:{};", (state.zoom)());
+    rsx! {
+        Thumbnails {}
+        if entries.is_empty() { Empty {} }
+        div { class: "gallery-masonry", style,
+            for index in indices {
+                if let (Some(entry),Some(rect)) = (entries.get(index),geometry.rects.get(index)) {
+                    div { key: "{entry.uri()}", class: "gallery-masonry-slot",
+                        style: "left:{}px;top:{}px;width:{}px;height:{}px;", rect.x,rect.y,rect.w,rect.h,
+                        Item {
+                            entry: entry.clone(), index, view: View::Gallery,
+                            cursor: index==current, marked: marks.contains(&entry.path),
+                            cut: state.is_cut(&entry.path), drop: false, limit: 0,
+                        }
+                    }
+                }
+            }
+        }
+        if height > state.layout().height {
+            div { class: "scrollbar",
+                style: "height:{}px;top:{}px;",
+                    (state.layout().height / height * state.layout().height).max(28.0),
+                    scroll / geometry.max_scroll(state.layout().height) *
+                      (state.layout().height - (state.layout().height / height * state.layout().height).max(28.0))
+            }
+        }
     }
 }
 
@@ -237,6 +281,11 @@ fn Thumbnails() -> Element {
             return Vec::new();
         }
         let entries = state.entries.read();
+        if view == View::Gallery && !(state.gallery_focus)()
+            && (state.gallery_mode)() != super::state::GalleryMode::Grid {
+            let indices = state.gallery_layout.read().visible((state.scroll)(),state.layout().height*1.6);
+            return indices.into_iter().filter_map(|i|entries.get(i)).filter(|entry| thumbnails::can_preview(entry)).cloned().collect::<Vec<_>>();
+        }
         let range = if view == View::Gallery && (state.gallery_focus)() {
             let index = state.index();
             index.saturating_sub(5)..(index + 6).min(entries.len())

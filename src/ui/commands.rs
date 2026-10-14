@@ -1,6 +1,6 @@
 use super::{
     keymap::Command,
-    state::{Clipboard, Explorer, Job, Overlay},
+    state::{Clipboard, Explorer, GalleryMode, Job, Overlay},
     viewport::{self, View},
 };
 use crate::{
@@ -239,6 +239,37 @@ fn files(mut state: Explorer, command: &Command) -> bool {
             state,
             operations::run_with(program, &folder, &state.targets()),
         ),
+        Command::GalleryMode(mode) => {
+            let target = match mode.as_str() {
+                "grid" => GalleryMode::Grid,
+                "masonry" => GalleryMode::Masonry,
+                "board" => GalleryMode::Board,
+                _ => { state.notify("Gallery modes: grid, masonry, board", true); return true; }
+            };
+            state.gallery_mode.set(target);
+            state.scroll.set(0.0);
+            state.target.set(0.0);
+        }
+        Command::BoardMove(position) => {
+            if (state.gallery_mode)() != GalleryMode::Board {
+                state.notify("Select :gallery_mode board first", true);
+                return true;
+            }
+            let parts = position.split_whitespace().collect::<Vec<_>>();
+            let result = (|| -> Result<(),String> {
+                if parts.len()!=2 { return Err("Usage: :board_move X Y".into()); }
+                let x=parts[0].parse::<f64>().map_err(|e|e.to_string())?;
+                let y=parts[1].parse::<f64>().map_err(|e|e.to_string())?;
+                let index=state.index();
+                let entry=state.cursor_entry().ok_or("No image selected")?;
+                let width=state.gallery_layout.read().rects.get(index).ok_or("No card")?.w;
+                crate::gallery_layout::move_card(&state.current(),&entry.path,x,y,width).map_err(|e|e.to_string())
+            })();
+            match result {
+                Ok(()) => {state.revision+=1;state.notify("Board card repositioned",false);}
+                Err(e) => state.notify(e,true),
+            }
+        }
         Command::EditMetadata(field, value) => {
             if let Some(entry) = state.cursor_entry().filter(crate::thumbnails::is_image) {
                 match crate::image_metadata::update(&entry.path, field, value) {
