@@ -28,9 +28,18 @@ pub struct Response {
     pub message: String,
     pub refresh: bool,
     pub updates: Vec<Update>,
+    pub operations: Vec<FileOperation>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum FileOperation {
+    CreateFolder { name: String },
+    Move { path: PathBuf, folder: PathBuf },
+    Copy { path: PathBuf, folder: PathBuf },
+}
+
 pub struct Update {
     pub path: PathBuf,
     pub title: Option<String>,
@@ -85,11 +94,42 @@ pub fn run(name: &str, arguments: String, directory: PathBuf, selected_paths: Ve
     if output.stdout.len() > 1024 * 1024 { return Err("Extension output exceeded 1 MiB".into()); }
     let response: Response = serde_json::from_slice(&output.stdout).map_err(|e| format!("Extension response invalid: {e}"))?;
     let root = fs::canonicalize(&directory).map_err(|e| e.to_string())?;
+    let within = |input: PathBuf| -> Result<PathBuf, String> {
+        let target = if input.is_absolute() { input } else { directory.join(input) };
+        let canonical = fs::canonicalize(&target).map_err(|e| e.to_string())?;
+        if !canonical.starts_with(&root) {
+            return Err("Extension cannot operate outside the current folder".into());
+        }
+        Ok(canonical)
+    };
+    // Actions are executed through the same no-overwrite transfer engine as the GUI.
+    // These operations are deliberately limited to the open folder and descendants.
+    for action in response.operations {
+        match action {
+            FileOperation::CreateFolder { name } => {
+                crate::operations::create(&directory, &name, true)?;
+            }
+            FileOperation::Move { path, folder } => {
+                let source = within(path)?;
+                let dest = within(folder)?;
+                if !dest.is_dir() { return Err("Extension destination is not a directory".into()); }
+                crate::operations::transfer(&[source], &dest, crate::operations::Transfer::Move, &crate::operations::Progress::default())?;
+            }
+            FileOperation::Copy { path, folder } => {
+                let source = within(path)?;
+                let dest = within(folder)?;
+                if !dest.is_dir() { return Err("Extension destination is not a directory".into()); }
+                crate::operations::transfer(&[source], &dest, crate::operations::Transfer::Copy, &crate::operations::Progress::default())?;
+            }
+        }
+    }
+    let _requested_refresh = response.refresh;
     for update in response.updates {
         let target = if update.path.is_absolute() { update.path } else { directory.join(update.path) };
         let canonical = fs::canonicalize(&target).map_err(|e| e.to_string())?;
-        if !canonical.starts_with(&root) || !canonical.is_file() {
-            return Err("Extension attempted metadata update outside this folder".into());
+        if !canonical.starts_with(&root) || !canonical.is_file()
+            || !mime_guess::from_path(&canonical).first_raw().is_some_and(|mime| mime.starts_with("image/")) {
+            return Err("Extension metadata target is not an image in the current folder".into());
         }
         let mut metadata = crate::image_metadata::load(&canonical);
         if let Some(v) = update.title { metadata.title = v; }

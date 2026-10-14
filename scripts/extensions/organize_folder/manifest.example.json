@@ -1,0 +1,6 @@
+{
+  "api_version": 1,
+  "name": "organize_folder",
+  "description": "Move files into Images, Videos, and Documents using Explorer operations",
+  "executable": "/absolute/path/to/explorer-organize-folder"
+}

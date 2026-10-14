@@ -98,3 +98,26 @@ that executable directly; arguments are passed as JSON, not shell-interpolated.
 Site-specific network access and authentication belong to the extension.
 Keep credentials outside exported annotations and do not store session cookies
 inside board files.
+
+## Core file-operation capabilities
+
+Protocol v1 responses can also contain an `operations` array. Each action
+uses Explorer's existing no-overwrite file operations and is restricted to the
+open directory and its descendants.
+
+```json
+{
+  "operations": [
+    { "kind": "create_folder", "name": "Images" },
+    { "kind": "move", "path": "photo.jpg", "folder": "Images" },
+    { "kind": "copy", "path": "poster.png", "folder": "Images" }
+  ]
+}
+```
+
+Actions run in order. Failures report an error, but earlier successful actions
+are not rolled back yet. The `organize_folder` example demonstrates this:
+build it with `cargo build --release --manifest-path scripts/extensions/organize_folder/Cargo.toml`,
+install its manifest with the absolute executable path, and use
+`:script organize_folder all` to process the open folder (or omit `all`
+to process the current selection). Image sidecars are preserved by the core.
