@@ -19,9 +19,30 @@ pub fn pressed(mut state: Explorer, index: usize, path: PathBuf, x: f64, y: f64)
 
 pub fn released(mut state: Explorer) {
     state.press.set(None);
+    let board=state.board_drag.peek().clone();
+    if let Some(drag)=board {
+        state.board_drag.set(None);
+        if (drag.x-drag.start_x).abs()>2.0 || (drag.y-drag.start_y).abs()>2.0 {
+            match crate::gallery_layout::move_card(&state.current(),&drag.path,drag.x,drag.y,drag.width) {
+                Ok(())=>{state.revision+=1;}
+                Err(e)=>state.notify(format!("Board save: {e}"),true)
+            }
+        }
+    }
 }
 
 pub fn moved(mut state: Explorer, event: MouseEvent) {
+    if let Some(mut drag)=state.board_drag.peek().clone() {
+        if !event.held_buttons().contains(MouseButton::Primary) {
+            released(state);
+            return;
+        }
+        let pos=event.client_coordinates();
+        drag.x=(drag.start_x+pos.x-drag.pointer_x).max(0.0);
+        drag.y=(drag.start_y+pos.y-drag.pointer_y).max(0.0);
+        state.board_drag.set(Some(drag));
+        return;
+    }
     let Some((x, y)) = *state.press.peek() else {
         return;
     };

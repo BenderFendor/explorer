@@ -76,6 +76,17 @@ impl Cursor {
     }
 }
 
+#[derive(Clone, PartialEq, Debug)]
+pub struct BoardDrag {
+    pub path: PathBuf,
+    pub pointer_x:f64,
+    pub pointer_y:f64,
+    pub start_x:f64,
+    pub start_y:f64,
+    pub x:f64,
+    pub y:f64,
+    pub width:f64,
+}
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum GalleryMode { Grid, Masonry, Board }
 impl GalleryMode {
@@ -96,6 +107,7 @@ pub struct Explorer {
     pub gallery_previous: Signal<View>,
     pub gallery_mode: Signal<GalleryMode>,
     pub gallery_layout: Memo<GalleryLayout>,
+    pub board_drag: Signal<Option<BoardDrag>>,
     pub gallery_focus: Signal<bool>,
     pub gallery_zoom: Signal<f64>,
     pub gallery_info: Signal<bool>,

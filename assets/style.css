@@ -255,3 +255,6 @@ input { font-family: inherit; font-size: inherit; }
 .search-hits {max-height:420px;overflow-y:auto; }
 .search-hit {padding:8px;border-radius:5px;font-size:13px;cursor:pointer;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;}
 .search-hit:hover {background:var(--hover);}
+
+.gallery-masonry-slot .item {cursor:grab;}
+.gallery-masonry-slot .item:active {cursor:grabbing;}

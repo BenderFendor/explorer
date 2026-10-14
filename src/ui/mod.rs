@@ -100,6 +100,7 @@ pub fn app() -> Element {
         gallery_previous: use_signal(View::default),
         gallery_mode,
         gallery_layout,
+        board_drag: use_signal(||None),
         gallery_focus: use_signal(|| false),
         gallery_zoom: use_signal(|| 1.0),
         gallery_info: use_signal(|| true),

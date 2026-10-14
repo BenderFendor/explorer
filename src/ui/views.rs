@@ -108,6 +108,7 @@ fn MasonryItems() -> Element {
     let indices = geometry.visible(scroll, state.layout().height);
     let current = state.index();
     let marks = state.marks.read();
+    let preview_drag = state.board_drag.read().clone();
     let height = geometry.height;
     let viewport_height = state.layout().height;
     let bar_height = (viewport_height / height * viewport_height).max(28.0);
@@ -120,7 +121,11 @@ fn MasonryItems() -> Element {
             for index in indices {
                 if let (Some(entry),Some(rect)) = (entries.get(index),geometry.rects.get(index)) {
                     div { key: "{entry.uri()}", class: "gallery-masonry-slot",
-                        style: "left:{rect.x}px;top:{rect.y}px;width:{rect.w}px;height:{rect.h}px;",
+                        style: {
+                            let x=preview_drag.as_ref().filter(|drag|drag.path==entry.path).map_or(rect.x,|drag|drag.x);
+                            let y=preview_drag.as_ref().filter(|drag|drag.path==entry.path).map_or(rect.y,|drag|drag.y);
+                            format!("left:{x}px;top:{y}px;width:{}px;height:{}px;",rect.w,rect.h)
+                        },
                         Item {
                             entry: entry.clone(), index, view: View::Gallery,
                             cursor: index==current, marked: marks.contains(&entry.path),
@@ -260,7 +265,17 @@ fn press(mut state: Explorer, index: usize, entry: Entry, event: MouseEvent) {
         }
         Some(MouseButton::Primary) if !event.modifiers().ctrl() && !event.modifiers().shift() => {
             let point = event.client_coordinates();
-            drag::pressed(state, index, entry.path, point.x, point.y);
+            if (state.view)()==View::Gallery
+                && (state.gallery_mode)()==super::state::GalleryMode::Board {
+                if let Some(rect)=state.gallery_layout.read().rects.get(index).cloned() {
+                    state.board_drag.set(Some(super::state::BoardDrag{
+                        path:entry.path,pointer_x:point.x,pointer_y:point.y,
+                        start_x:rect.x,start_y:rect.y,x:rect.x,y:rect.y,width:rect.w
+                    }));
+                }
+            } else {
+                drag::pressed(state, index, entry.path, point.x, point.y);
+            }
         }
         Some(MouseButton::Auxiliary) if entry.folder => {
             event.stop_propagation();
