@@ -328,6 +328,7 @@ fn GalleryFocus() -> Element {
     let size = entry.size_label();
     let date = entry.date_label();
     let metadata = crate::image_metadata::load(&entry.path);
+    let tags_text = metadata.tags.join(", ");
     rsx! {
         div { class: "gallery-focus",
             Thumbnails {}
@@ -365,7 +366,7 @@ fn GalleryFocus() -> Element {
                     }
                     span { class: "gallery-annotation-label",
                         onclick: move |_| state.overlay.set(Overlay::Console(String::from("tags "))),
-                        if metadata.tags.is_empty() { "Add tags…" } else { "{metadata.tags.join(", ")}" }
+                        if metadata.tags.is_empty() { "Add tags…" } else { "{tags_text}" }
                     }
                     span { class: "gallery-annotation-label", title: "Edit notes",
                         onclick: move |_| state.overlay.set(Overlay::Console(String::from("note "))),

@@ -77,6 +77,14 @@ fn places(mut state: Explorer, command: &Command) -> bool {
         Command::PinCurrent => {
             report(state, crate::places::pin(&state.current()));
         }
+        Command::PinSelection => {
+            if let Some(folder) = state.cursor_entry().filter(|entry| entry.folder) {
+                report(state, crate::places::pin(&folder.path));
+            }
+        }
+        Command::ClearHistory => {
+            report(state, crate::history::clear().map_err(|err| err.to_string()));
+        }
         Command::SetBookmark(key) => {
             let current = state.current();
             state.bookmarks.write().insert(*key, current);

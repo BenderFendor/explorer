@@ -123,7 +123,7 @@ fn item_choices(folder: bool, in_trash: bool) -> Vec<Choice> {
     let mut choices: Vec<Choice> = vec![("Open", "l", Command::Open)];
     if folder {
         choices.push(("Open in new tab", "middle", Command::NewTab));
-        choices.push(("Pin folder", "", Command::PinCurrent));
+        choices.push(("Pin folder", "", Command::PinSelection));
     } else {
         choices.push(("Open with…", "r", Command::Console("open_with ")));
         choices.push(("Edit caption", "", Command::Console("caption ")));

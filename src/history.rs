@@ -25,7 +25,7 @@ fn save(visits: &[Visit]) -> std::io::Result<()> {
     let target = history_path();
     fs::create_dir_all(target.parent().unwrap_or(Path::new(".")))?;
     let temp = target.with_extension("json.tmp");
-    fs::write(&temp, serde_json::to_vec_pretty(visits)?)?;
+    fs::write(&temp, serde_json::to_vec_pretty(visits).map_err(std::io::Error::other)?)?;
     fs::rename(temp, target)
 }
 

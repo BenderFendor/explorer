@@ -91,6 +91,6 @@ pub fn save_key_bookmarks(bookmarks: &std::collections::HashMap<char, PathBuf>) 
     let path = state_path().with_file_name("key-bookmarks.json");
     fs::create_dir_all(path.parent().unwrap_or(std::path::Path::new(".")))?;
     let temporary = path.with_extension("json.tmp");
-    fs::write(&temporary, serde_json::to_vec_pretty(bookmarks)?)?;
+    fs::write(&temporary, serde_json::to_vec_pretty(bookmarks).map_err(std::io::Error::other)?)?;
     fs::rename(temporary, path)
 }

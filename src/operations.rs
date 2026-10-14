@@ -85,6 +85,13 @@ pub fn transfer(
             Transfer::Move => move_item(source, &target, progress),
         };
         result.map_err(|error| format!("{}: {error}", display_name(source)))?;
+        if source.is_file() && target.is_file() {
+            let preserved = match mode {
+                Transfer::Copy => crate::image_metadata::copy_sidecar(source, &target),
+                Transfer::Move => crate::image_metadata::move_sidecar(source, &target),
+            };
+            preserved.map_err(|error| format!("{} transferred but metadata could not be preserved: {error}", display_name(source)))?;
+        }
         created.push(target);
     }
     Ok(created)
@@ -264,6 +271,9 @@ pub fn rename(path: &Path, name: &str) -> Result<PathBuf, String> {
         return Err(format!("{name} already exists"));
     }
     fs::rename(path, &target).map_err(|error| error.to_string())?;
+    if let Err(error) = crate::image_metadata::move_sidecar(path, &target) {
+        return Err(format!("Renamed file, but metadata could not be relocated: {error}"));
+    }
     Ok(target)
 }
 
