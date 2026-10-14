@@ -5,6 +5,8 @@ mod dnd;
 mod file_manager1;
 mod filesystem;
 mod history;
+mod image_metadata;
+mod extensions;
 mod icons;
 mod imports;
 mod operations;
