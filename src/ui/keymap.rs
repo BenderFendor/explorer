@@ -271,7 +271,7 @@ const CONSOLE: &[(&str, Argument)] = &[
     ("q", Argument::None(Command::CloseTab)),
     ("terminal", Argument::None(Command::Terminal)),
     ("hidden", Argument::None(Command::ToggleHidden)),
-    ("gallery", Argument::None(Command::SetView(View::Gallery)),
+    ("gallery", Argument::None(Command::SetView(View::Gallery))),
     ("pin", Argument::None(Command::PinCurrent)),
     ("clear_history", Argument::None(Command::ClearHistory)),
     ("scripts", Argument::None(Command::ListScripts)),
