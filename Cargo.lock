@@ -1894,6 +1894,8 @@ dependencies = [
  "mime_guess",
  "notify",
  "png",
+ "serde",
+ "serde_json",
  "tokio",
  "url",
  "vello_cpu",

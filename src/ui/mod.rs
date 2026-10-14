@@ -80,7 +80,7 @@ pub fn app() -> Element {
         marks: use_signal(Default::default),
         clipboard: use_signal(|| None),
         remembered: use_signal(HashMap::new),
-        bookmarks: use_signal(HashMap::new),
+        bookmarks: use_signal(prefs::load_key_bookmarks),
         thumbnails: use_signal(HashMap::new),
         scroll: use_signal(|| 0.0),
         target: use_signal(|| 0.0),

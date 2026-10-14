@@ -76,7 +76,9 @@ fn places(mut state: Explorer, command: &Command) -> bool {
         Command::SetBookmark(key) => {
             let current = state.current();
             state.bookmarks.write().insert(*key, current);
-            state.notify(format!("Bookmark {key} set"), false);
+            if let Err(error) = crate::prefs::save_key_bookmarks(&state.bookmarks.read()) {
+                state.notify(format!("Bookmark save failed: {error}"), true);
+            } else { state.notify(format!("Bookmark {key} set"), false); }
         }
         Command::Bookmark(key) => jump(state, *key),
         Command::EditPath => state.editing_path.set(true),
@@ -375,6 +377,7 @@ fn open(mut state: Explorer) {
         vec![entry.path]
     };
     for path in paths {
+        crate::history::record(&path, false);
         report(state, operations::open(&path));
     }
 }

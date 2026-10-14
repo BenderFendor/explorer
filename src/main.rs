@@ -4,6 +4,7 @@ mod clipboard;
 mod dnd;
 mod file_manager1;
 mod filesystem;
+mod history;
 mod icons;
 mod imports;
 mod operations;

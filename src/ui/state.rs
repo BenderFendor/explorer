@@ -187,6 +187,7 @@ impl Explorer {
         self.remember();
         let select = select.or_else(|| self.remembered.read().get(&path).cloned());
         self.navigation.write().visit(path);
+        crate::history::record(&self.current(), true);
         self.arrive(select);
     }
 
