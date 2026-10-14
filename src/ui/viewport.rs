@@ -10,6 +10,8 @@ pub const TOP: f64 = 68.0;
 pub const BOTTOM: f64 = 20.0;
 pub const CELL_W: f64 = 152.0;
 pub const CELL_H: f64 = 164.0;
+pub const GALLERY_CELL_W: f64 = 212.0;
+pub const GALLERY_CELL_H: f64 = 188.0;
 pub const ROW_H: f64 = 30.0;
 /// Fraction of the content width used by the Miller parent and preview columns.
 pub const PARENT_SHARE: f64 = 0.22;
@@ -42,6 +44,7 @@ pub enum View {
     Grid,
     List,
     Columns,
+    Gallery,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -77,7 +80,11 @@ impl Layout {
         } else {
             0.0
         };
-        let cell = (CELL_W * zoom, CELL_H * zoom);
+        let cell = if view == View::Gallery {
+            (GALLERY_CELL_W * zoom, GALLERY_CELL_H * zoom)
+        } else {
+            (CELL_W * zoom, CELL_H * zoom)
+        };
         let content = (window.width - sidebar - preview - 2.0 * PAD_X).max(ROW_H);
         let height = (window.height - TOP - BOTTOM).max(ROW_H);
         let (left, width) = match view {
@@ -89,7 +96,7 @@ impl Layout {
             _ => (sidebar + PAD_X, content),
         };
         let (columns, row) = match view {
-            View::Grid => (((content / cell.0).floor() as usize).max(1), cell.1),
+            View::Grid | View::Gallery => (((content / cell.0).floor() as usize).max(1), cell.1),
             _ => (1, ROW_H),
         };
         Self {
@@ -170,7 +177,7 @@ pub fn step(current: f64, target: f64, motion: bool) -> f64 {
 pub fn css_variables() -> String {
     format!(
         ":root{{--sidebar-w:{SIDEBAR}px;--preview-w:{PREVIEW}px;--pad-x:{PAD_X}px;--top-h:{TOP}px;\
-         --bottom-h:{BOTTOM}px;--cell-w:{CELL_W}px;--cell-h:{CELL_H}px;--row-h:{ROW_H}px;\
+         --bottom-h:{BOTTOM}px;--cell-w:{CELL_W}px;--cell-h:{CELL_H}px;--gallery-cell-h:{GALLERY_CELL_H}px;--row-h:{ROW_H}px;\
          --parent-share:{}%;--preview-share:{}%;}}",
         PARENT_SHARE * 100.0,
         PREVIEW_SHARE * 100.0
@@ -194,6 +201,15 @@ mod tests {
         assert!(wide.columns > layout.columns);
         let list = Layout::new(Window::default(), View::List, true, true, 1.0);
         assert_eq!((list.columns, list.row), (1, ROW_H));
+    }
+
+    #[test]
+    fn gallery_uses_a_larger_virtualized_grid() {
+        let gallery = Layout::new(Window::default(), View::Gallery, true, false, 1.0);
+        assert_eq!(gallery.columns, 3);
+        assert_eq!(gallery.row, GALLERY_CELL_H);
+        assert_eq!(gallery.visible(0.0, 1000).start, 0);
+        assert_eq!(gallery.visible(GALLERY_CELL_H * 2.0, 1000).start, gallery.columns * 2);
     }
 
     #[test]

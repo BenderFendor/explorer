@@ -20,7 +20,9 @@ pub fn Content() -> Element {
     let state = use_context::<Explorer>();
     let view = (state.view)();
     let path = state.current();
-    let body = if view == View::Columns {
+    let body = if view == View::Gallery && (state.gallery_focus)() {
+        rsx! { GalleryFocus {} }
+    } else if view == View::Columns {
         rsx! {
             div { class: "miller",
                 ParentColumn { key: "{path.display()}", path: path.clone() }
@@ -55,7 +57,11 @@ fn Items() -> Element {
     let offset = (range.start / layout.columns) as f64 * layout.row - scroll;
     let cursor = state.index();
     let marks = state.marks.read();
-    let class = if view == View::Grid { "grid" } else { "rows" };
+    let class = match view {
+        View::Grid => "grid",
+        View::Gallery => "grid gallery-grid",
+        _ => "rows",
+    };
     let limit = name_limit(view, &layout);
     // Exact pixel tracks: Blitz collapses `1fr` tracks whose items use percentage widths.
     let style = format!(
@@ -102,7 +108,7 @@ fn Item(
     let state = use_context::<Explorer>();
     let class = format!(
         "item {}{}{}{}{}",
-        if view == View::Grid { "card" } else { "row" },
+        match view { View::Grid => "card", View::Gallery => "gallery-card", _ => "row" },
         if cursor { " cursor" } else { "" },
         if marked { " marked" } else { "" },
         if cut { " cut" } else { "" },
@@ -115,9 +121,9 @@ fn Item(
         div { class, title: "{entry.name}",
             onclick: move |event| click(state, index, path.clone(), event),
             onmousedown: move |event| press(state, index, pressed.clone(), event),
-            if view == View::Grid {
+            if matches!(view, View::Grid | View::Gallery) {
                 div { class: "art", FileArt { entry: entry.clone(), thumbnail: thumbnail(state, &entry) } }
-                span { class: "name", {name.clone()} }
+                if view == View::Grid { span { class: "name", {name.clone()} } }
             } else {
                 span { class: "glyph", Glyph { entry: entry.clone() } }
                 span { class: "name", {name.clone()} }
@@ -137,6 +143,7 @@ fn name_limit(view: View, layout: &Layout) -> usize {
     const GLYPH: f64 = 7.0;
     let width = match view {
         View::Grid => return (layout.row / 8.2) as usize,
+        View::Gallery => return 0,
         View::List => layout.width - 260.0,
         View::Columns => layout.width - 130.0,
     };
@@ -213,13 +220,23 @@ fn press(mut state: Explorer, index: usize, entry: Entry, event: MouseEvent) {
 fn Thumbnails() -> Element {
     let mut state = use_context::<Explorer>();
     let batch = use_memo(move || {
-        if (state.view)() != View::Grid {
+        let view = (state.view)();
+        if !matches!(view, View::Grid | View::Gallery) {
             return Vec::new();
         }
         let entries = state.entries.read();
-        let scroll = (state.scroll)();
-        let range = state.layout().visible(scroll, entries.len());
-        let ahead = (range.end + range.len()).min(entries.len());
+        let range = if view == View::Gallery && (state.gallery_focus)() {
+            let index = state.index();
+            index.saturating_sub(5)..(index + 6).min(entries.len())
+        } else {
+            let scroll = (state.scroll)();
+            state.layout().visible(scroll, entries.len())
+        };
+        let ahead = if view == View::Gallery && (state.gallery_focus)() {
+            range.end
+        } else {
+            (range.end + range.len()).min(entries.len())
+        };
         entries[range.start..ahead]
             .iter()
             .filter(|entry| thumbnails::can_preview(entry))
@@ -227,7 +244,10 @@ fn Thumbnails() -> Element {
             .collect::<Vec<_>>()
     });
     // Grid art is 128 px wide at zoom 1; a zoom change swaps the flavor.
-    let flavor = use_memo(move || Flavor::covering(128.0 * (state.zoom)()));
+    let flavor = use_memo(move || {
+        let size = if (state.view)() == View::Gallery { 212.0 } else { 128.0 };
+        Flavor::covering(size * (state.zoom)())
+    });
     use_effect(move || {
         flavor();
         state.thumbnails.write().clear();
@@ -267,12 +287,73 @@ fn Empty() -> Element {
     let state = use_context::<Explorer>();
     let text = if !state.query.read().is_empty() {
         "Nothing matches"
+    } else if (state.view)() == View::Gallery {
+        "No images in this folder"
     } else if state.in_trash() {
         "Trash is empty"
     } else {
         "Empty folder"
     };
     rsx! { div { class: "empty", {text} } }
+}
+
+/// Large in-app image viewer with a window-bounded thumbnail strip.
+#[component]
+fn GalleryFocus() -> Element {
+    let state = use_context::<Explorer>();
+    let entries = state.entries.read();
+    let index = state.index();
+    let Some(entry) = entries.get(index).cloned() else {
+        return rsx! { Empty {} };
+    };
+    let count = entries.len();
+    let slots = ((state.layout().width / 88.0).floor() as usize).clamp(3, 9);
+    let start = index.saturating_sub(slots / 2).min(count.saturating_sub(slots));
+    let strip: Vec<_> = entries
+        .iter()
+        .enumerate()
+        .skip(start)
+        .take(slots)
+        .map(|(i, entry)| (i, entry.clone()))
+        .collect();
+    let source = entry.uri();
+    let scale = (state.gallery_zoom)();
+    let name = entry.name.clone();
+    let size = entry.size_label();
+    let date = entry.date_label();
+    rsx! {
+        div { class: "gallery-focus",
+            Thumbnails {}
+            div { class: "gallery-stage",
+                img {
+                    key: "{source}", class: "gallery-full",
+                    src: source, alt: "{name}", draggable: "false",
+                    style: "transform:scale({scale});",
+                }
+            }
+            div { class: "gallery-filmstrip",
+                for (position, image) in strip {
+                    div {
+                        key: "{image.uri()}",
+                        class: if position == index { "gallery-film active" } else { "gallery-film" },
+                        title: "{image.name}",
+                        onclick: move |_| state.set_cursor(position),
+                        if let Some(uri) = thumbnail(state, &image) {
+                            img { src: uri, alt: "{image.name}", draggable: "false" }
+                        } else {
+                            span { class: "gallery-film-placeholder", "image" }
+                        }
+                    }
+                }
+            }
+            if (state.gallery_info)() {
+                div { class: "gallery-facts",
+                    span { class: "gallery-filename", {name} }
+                    span { class: "gallery-details", "{size}  ·  {date}  ·  {index + 1}/{count}  ·  {scale}×" }
+                }
+            }
+        }
+    }
 }
 
 /// The ranger parent column: siblings of the current folder, centred on it.

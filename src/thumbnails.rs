@@ -109,6 +109,14 @@ fn cached_images(entries: &[Entry], flavor: Flavor) -> HashMap<PathBuf, String> 
         .collect()
 }
 
+/// Only image files belong in gallery mode; videos and documents stay in normal views.
+pub fn is_image(entry: &Entry) -> bool {
+    !entry.folder
+        && mime_guess::from_path(&entry.path)
+            .first()
+            .is_some_and(|mime| mime.type_().as_str() == "image")
+}
+
 pub fn can_preview(entry: &Entry) -> bool {
     !entry.folder
         && mime_guess::from_path(&entry.path)
@@ -193,6 +201,19 @@ async fn request(entries: &[Entry], flavor: Flavor) -> Result<(), zbus::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gallery_filters_image_mimes_and_skips_folders() {
+        use crate::filesystem::{read_directory, tests::Fixture};
+        let fixture = Fixture::new();
+        for name in ["frame.jpg", "sketch.png", "movie.mp4", "notes.txt"] {
+            std::fs::write(fixture.0.join(name), "").unwrap();
+        }
+        std::fs::create_dir(fixture.0.join("other.png")).unwrap();
+        let entries = read_directory(&fixture.0).unwrap().entries;
+        let images: Vec<_> = entries.iter().filter(|entry| is_image(entry)).map(|entry| entry.name.clone()).collect();
+        assert_eq!(images, ["frame.jpg", "sketch.png"]);
+    }
 
     #[test]
     fn tumbler_fractional_timestamps_and_standard_seconds_are_validated() {

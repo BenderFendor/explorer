@@ -43,12 +43,17 @@ pub fn app() -> Element {
                 .unwrap_or_else(|error| Err(error.to_string()))
         }
     });
+    let view = use_signal(View::default);
     let entries = use_memo(move || {
         let current = navigation.read().current().to_path_buf();
         match &*listing.read() {
             // A refresh keeps showing the previous listing until the new one arrives.
             Some(Ok(listing)) if listing.path == current => {
-                filesystem::visible_entries(listing, &query(), hidden(), order())
+                let mut visible = filesystem::visible_entries(listing, &query(), hidden(), order());
+                if view() == View::Gallery {
+                    visible.retain(crate::thumbnails::is_image);
+                }
+                visible
             }
             _ => Vec::new(),
         }
@@ -62,7 +67,11 @@ pub fn app() -> Element {
         filtering: use_signal(|| false),
         hidden,
         order,
-        view: use_signal(View::default),
+        view,
+        gallery_previous: use_signal(View::default),
+        gallery_focus: use_signal(|| false),
+        gallery_zoom: use_signal(|| 1.0),
+        gallery_info: use_signal(|| true),
         zoom: use_signal(|| 1.0),
         cursor: use_signal(|| Cursor {
             path: crate::cli::options().select.clone(),
@@ -127,7 +136,7 @@ pub fn app() -> Element {
             onmousemove: move |event| drag::moved(state, event),
             onmouseup: move |_| drag::released(state),
             FocusTarget { epoch: (state.focus)() }
-            if (state.sidebar)() { sidebar::Sidebar {} }
+            if (state.sidebar)() && !((state.view)() == View::Gallery && (state.gallery_focus)()) { sidebar::Sidebar {} }
             main { class: "main",
                 topbar::Topbar {}
                 if let Some(error) = error {
@@ -140,7 +149,7 @@ pub fn app() -> Element {
                 }
                 overlay::Dock {}
             }
-            if (state.preview)() && (state.view)() != View::Columns {
+            if (state.preview)() && (state.view)() != View::Columns && !((state.view)() == View::Gallery && (state.gallery_focus)()) {
                 aside { class: "side-preview",
                     if let Some(entry) = state.cursor_entry() {
                         preview::Preview { key: "{entry.uri()}", entry, compact: false }
@@ -225,6 +234,9 @@ fn wheel(mut state: Explorer, delta: f64, x: f64, y: f64, zoom: bool) {
     }
     let layout = state.layout();
     if !layout.contains(x, y) || *state.overlay.peek() != Overlay::None {
+        return;
+    }
+    if (state.view)() == View::Gallery && (state.gallery_focus)() {
         return;
     }
     let target = layout.clamp(*state.target.peek() + delta, state.entries.peek().len());

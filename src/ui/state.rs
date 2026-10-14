@@ -83,6 +83,10 @@ pub struct Explorer {
     pub hidden: Signal<bool>,
     pub order: Signal<Order>,
     pub view: Signal<View>,
+    pub gallery_previous: Signal<View>,
+    pub gallery_focus: Signal<bool>,
+    pub gallery_zoom: Signal<f64>,
+    pub gallery_info: Signal<bool>,
     pub zoom: Signal<f64>,
     pub cursor: Signal<Cursor>,
     pub marks: Signal<HashSet<PathBuf>>,
@@ -118,11 +122,12 @@ impl Explorer {
     }
 
     pub fn layout(&self) -> Layout {
+        let focused = (self.view)() == View::Gallery && (self.gallery_focus)();
         Layout::new(
             (self.window)(),
             (self.view)(),
-            (self.sidebar)(),
-            (self.preview)(),
+            (self.sidebar)() && !focused,
+            (self.preview)() && !focused,
             (self.zoom)(),
         )
     }
@@ -211,6 +216,8 @@ impl Explorer {
     }
 
     pub fn arrive(mut self, select: Option<PathBuf>) {
+        self.gallery_focus.set(false);
+        self.gallery_zoom.set(1.0);
         self.cursor.set(Cursor {
             path: select,
             index: 0,
