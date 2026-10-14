@@ -123,8 +123,12 @@ fn item_choices(folder: bool, in_trash: bool) -> Vec<Choice> {
     let mut choices: Vec<Choice> = vec![("Open", "l", Command::Open)];
     if folder {
         choices.push(("Open in new tab", "middle", Command::NewTab));
+        choices.push(("Pin folder", "", Command::PinCurrent));
     } else {
         choices.push(("Open with…", "r", Command::Console("open_with ")));
+        choices.push(("Edit caption", "", Command::Console("caption ")));
+        choices.push(("Edit source", "", Command::Console("source ")));
+        choices.push(("Edit tags", "", Command::Console("tags ")));
     }
     choices.extend([
         ("Cut", "dd", Command::Cut),
@@ -144,6 +148,8 @@ fn background_choices(in_trash: bool) -> Vec<Choice> {
     let mut choices: Vec<Choice> = vec![
         ("New folder", "Ctrl+Shift+N", Command::Console("mkdir ")),
         ("New file", ":touch", Command::Console("touch ")),
+        ("Pin this folder", ":pin", Command::PinCurrent),
+        ("Installed extensions", ":scripts", Command::ListScripts),
         ("Paste", "pp", Command::Paste),
         ("Terminal here", "S", Command::Terminal),
         ("Grid", "Ctrl+1", Command::SetView(View::Grid)),

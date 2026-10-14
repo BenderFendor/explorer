@@ -219,3 +219,16 @@ input { font-family: inherit; font-size: inherit; }
 .quick-items { display: none; flex-direction: column; }
 .quick-access:hover .quick-items, .quick-items.expanded { display: flex; }
 .side-subheading { font-size: 11px; padding: 8px 26px 4px 38px; letter-spacing: .035em; color: var(--muted); }
+
+/* Optional annotations never create or change image bytes. */
+.gallery-card { position: relative; }
+.gallery-card .gallery-caption {
+    position: absolute; bottom: 4px; left: 8px; right: 8px; font-size: 12px;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 4px 6px;
+    border-radius: 4px; background: var(--raised); opacity: .9;
+}
+.gallery-annotations { display: flex; flex-wrap: wrap; align-items: center; gap: 9px;
+    padding: 4px 0 7px; font-size: 12px; }
+.gallery-annotation-label { cursor: pointer; color: var(--muted); max-width: 40%;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gallery-annotation-label:hover { color: var(--accent); }

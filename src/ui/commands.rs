@@ -16,6 +16,7 @@ pub fn run(state: Explorer, command: Command) {
         || select(state, &command)
         || clipboard(state, &command)
         || files(state, &command)
+        || extension_commands(state, &command)
         || trash(state, &command)
         || prompts(state, &command)
         || display(state, &command)
@@ -73,6 +74,9 @@ fn places(mut state: Explorer, command: &Command) -> bool {
         Command::Root => state.visit(PathBuf::from("/")),
         Command::Trashcan => state.visit(operations::trash_files()),
         Command::Cd(path) => state.visit(filesystem::resolve(path.as_ref(), &state.current())),
+        Command::PinCurrent => {
+            report(state, crate::places::pin(&state.current()));
+        }
         Command::SetBookmark(key) => {
             let current = state.current();
             state.bookmarks.write().insert(*key, current);
@@ -209,6 +213,48 @@ fn files(mut state: Explorer, command: &Command) -> bool {
             state,
             operations::run_with(program, &folder, &state.targets()),
         ),
+        Command::EditMetadata(field, value) => {
+            if let Some(entry) = state.cursor_entry().filter(crate::thumbnails::is_image) {
+                match crate::image_metadata::update(&entry.path, field, value) {
+                    Ok(()) => { state.revision += 1; state.notify("Image metadata saved", false); }
+                    Err(error) => state.notify(error.to_string(), true),
+                }
+            } else {
+                state.notify("Select an image to edit its metadata", true);
+            }
+        },
+        _ => return false,
+    }
+    true
+}
+
+fn extension_commands(mut state: Explorer, command: &Command) -> bool {
+    match command {
+        Command::ListScripts => {
+            let scripts = crate::extensions::list();
+            if scripts.is_empty() {
+                state.notify("No extensions installed in ~/.config/explorer/extensions", false);
+            } else {
+                state.notify(format!("Extensions: {}", scripts.iter().map(|e| e.name.as_str()).collect::<Vec<_>>().join(", ")), false);
+            }
+        }
+        Command::RunScript(invocation) => {
+            let (name, arguments) = invocation.split_once(char::is_whitespace).unwrap_or((invocation.as_str(), ""));
+            let name = name.to_owned();
+            let arguments = arguments.to_owned();
+            let folder = state.current();
+            let files = state.targets();
+            state.notify(format!("Running extension {name}"), false);
+            spawn_forever(async move {
+                let result = tokio::task::spawn_blocking(move || {
+                    crate::extensions::run(&name, arguments, folder, files)
+                }).await.unwrap_or_else(|error| Err(error.to_string()));
+                match result {
+                    Ok(message) => { state.revision += 1; state.notify(message, false); }
+                    Err(error) => state.notify(error, true),
+                }
+            });
+        }
         _ => return false,
     }
     true

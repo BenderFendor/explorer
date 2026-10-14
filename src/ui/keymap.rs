@@ -65,6 +65,10 @@ pub enum Command {
     Download(String),
     Restore,
     EmptyTrash,
+    PinCurrent,
+    ListScripts,
+    RunScript(String),
+    EditMetadata(&'static str, String),
 }
 
 #[derive(Debug, PartialEq)]
@@ -266,6 +270,15 @@ const CONSOLE: &[(&str, Argument)] = &[
     ("terminal", Argument::None(Command::Terminal)),
     ("hidden", Argument::None(Command::ToggleHidden)),
     ("gallery", Argument::None(Command::SetView(View::Gallery)),
+    ("pin", Argument::None(Command::PinCurrent)),
+    ("scripts", Argument::None(Command::ListScripts)),
+    ("script", Argument::Required(Command::RunScript)),
+    ("title", Argument::Required(|text| Command::EditMetadata("title", text))),
+    ("caption", Argument::Required(|text| Command::EditMetadata("caption", text))),
+    ("source", Argument::Required(|text| Command::EditMetadata("source", text))),
+    ("tags", Argument::Required(|text| Command::EditMetadata("tags", text))),
+    ("note", Argument::Required(|text| Command::EditMetadata("notes", text))),
+    ("creator", Argument::Required(|text| Command::EditMetadata("creator", text))),
     ("help", Argument::None(Command::Help)),
 ];
 
@@ -318,7 +331,7 @@ pub const HELP: &[(&str, &str)] = &[
     ("dT  dD", "Trash, delete permanently"),
     ("cw  F2", "Rename"),
     ("/", "Filter this folder"),
-    (":", "Command: mkdir, touch, cd, dl, open_with, sort"),
+    (":", "Command: mkdir, touch, cd, dl, open_with, sort, pin, script, caption"),
     (
         "on os om ot or",
         "Sort by name, size, modified, type; reverse",

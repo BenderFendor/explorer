@@ -2,7 +2,7 @@
 //! The JSON protocol is versioned and independent of UI, indexing, or download implementation.
 //! Executables have the user's OS permissions: only install trusted extensions.
 use serde::{Serialize, Deserialize};
-use std::{fs, path::{Path,PathBuf}, process::{Command,Stdio}, io::Write};
+use std::{fs, path::PathBuf, process::{Command,Stdio}, io::Write};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Manifest {

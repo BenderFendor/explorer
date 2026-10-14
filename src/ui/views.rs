@@ -117,6 +117,9 @@ fn Item(
     let path = entry.path.clone();
     let pressed = entry.clone();
     let name = filesystem::shorten(&entry.name, limit);
+    let caption = if view == View::Gallery {
+        crate::image_metadata::load(&entry.path).caption
+    } else { String::new() };
     rsx! {
         div { class, title: "{entry.name}",
             onclick: move |event| click(state, index, path.clone(), event),
@@ -124,6 +127,9 @@ fn Item(
             if matches!(view, View::Grid | View::Gallery) {
                 div { class: "art", FileArt { entry: entry.clone(), thumbnail: thumbnail(state, &entry) } }
                 if view == View::Grid { span { class: "name", {name.clone()} } }
+                if view == View::Gallery && !caption.is_empty() {
+                    span { class: "gallery-caption", "{caption}" }
+                }
             } else {
                 span { class: "glyph", Glyph { entry: entry.clone() } }
                 span { class: "name", {name.clone()} }
@@ -300,7 +306,7 @@ fn Empty() -> Element {
 /// Large in-app image viewer with a window-bounded thumbnail strip.
 #[component]
 fn GalleryFocus() -> Element {
-    let state = use_context::<Explorer>();
+    let mut state = use_context::<Explorer>();
     let entries = state.entries.read();
     let index = state.index();
     let Some(entry) = entries.get(index).cloned() else {
@@ -321,6 +327,7 @@ fn GalleryFocus() -> Element {
     let name = entry.name.clone();
     let size = entry.size_label();
     let date = entry.date_label();
+    let metadata = crate::image_metadata::load(&entry.path);
     rsx! {
         div { class: "gallery-focus",
             Thumbnails {}
@@ -347,6 +354,24 @@ fn GalleryFocus() -> Element {
                 }
             }
             if (state.gallery_info)() {
+                div { class: "gallery-annotations",
+                    span { class: "gallery-annotation-label",
+                        onclick: move |_| state.overlay.set(Overlay::Console(String::from("caption "))),
+                        if metadata.caption.is_empty() { "Add caption…" } else { "{metadata.caption}" }
+                    }
+                    span { class: "gallery-annotation-label",
+                        onclick: move |_| state.overlay.set(Overlay::Console(String::from("source "))),
+                        if metadata.source.is_empty() { "Add source…" } else { "{metadata.source}" }
+                    }
+                    span { class: "gallery-annotation-label",
+                        onclick: move |_| state.overlay.set(Overlay::Console(String::from("tags "))),
+                        if metadata.tags.is_empty() { "Add tags…" } else { "{metadata.tags.join(", ")}" }
+                    }
+                    span { class: "gallery-annotation-label", title: "Edit notes",
+                        onclick: move |_| state.overlay.set(Overlay::Console(String::from("note "))),
+                        if metadata.notes.is_empty() { "Add note…" } else { "Note: {metadata.notes}" }
+                    }
+                }
                 div { class: "gallery-facts",
                     span { class: "gallery-filename", {name} }
                     span { class: "gallery-details", "{size}  ·  {date}  ·  {index + 1}/{count}  ·  {scale}×" }
