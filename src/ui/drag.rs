@@ -32,7 +32,8 @@ pub fn released(mut state: Explorer) {
 }
 
 pub fn moved(mut state: Explorer, event: MouseEvent) {
-    if let Some(mut drag)=state.board_drag.peek().clone() {
+    let board_drag=state.board_drag.peek().clone();
+    if let Some(mut drag)=board_drag {
         if !event.held_buttons().contains(MouseButton::Primary) {
             released(state);
             return;
