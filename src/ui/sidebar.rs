@@ -141,6 +141,8 @@ fn DeviceLink(device:crate::devices::Device,refresh:Signal<Places>)->Element {
     let block_action=device.block.clone();
     let mount=device.mount.clone();
     let power_block=device.block.clone();
+    let is_mounted=device.mount.is_some();
+    let is_removable=device.removable;
     rsx! {
         div {class:"place quiet",title:"{device.block.display()}",
             span {class:"place-title",
@@ -161,7 +163,7 @@ fn DeviceLink(device:crate::devices::Device,refresh:Signal<Places>)->Element {
                 },
                 if device.mount.is_some(){"⏏"}else{"+"}
             }
-            if device.removable {
+            if is_removable {
                 span {class:"side-action",title:"Safely power off removable drive",
                     onclick:move |event|{
                         event.stop_propagation();

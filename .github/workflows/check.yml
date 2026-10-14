@@ -1,5 +1,9 @@
 name: Rust checks
 
+concurrency:
+  group: explorer-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
