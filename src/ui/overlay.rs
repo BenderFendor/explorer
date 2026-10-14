@@ -281,6 +281,8 @@ fn background_choices(in_trash: bool) -> Vec<Choice> {
         ("Pin this folder", ":pin", Command::PinCurrent),
         ("Installed extensions", ":scripts", Command::ListScripts),
         ("Index this folder", ":index", Command::IndexFolder),
+        ("Undo", ":undo", Command::Undo),
+        ("Redo", ":redo", Command::Redo),
         ("Search indexed files", ":find", Command::Console("find ")),
         ("Paste", "pp", Command::Paste),
         ("Terminal here", "S", Command::Terminal),

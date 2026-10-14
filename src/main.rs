@@ -9,6 +9,7 @@ mod history;
 mod gallery_layout;
 mod search;
 mod devices;
+mod undo;
 mod app_chooser;
 mod icons;
 mod image_metadata;

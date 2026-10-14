@@ -97,6 +97,11 @@ pub fn transfer(
                 )
             })?;
         }
+        if mode == Transfer::Move {
+            crate::undo::record_move(source, &target);
+        } else {
+            crate::undo::record_add(&target);
+        }
         created.push(target);
     }
     Ok(created)
@@ -281,6 +286,7 @@ pub fn rename(path: &Path, name: &str) -> Result<PathBuf, String> {
             "Renamed file, but metadata could not be relocated: {error}"
         ));
     }
+    crate::undo::record_move(path,&target);
     Ok(target)
 }
 
@@ -296,6 +302,7 @@ pub fn create(folder: &Path, name: &str, directory: bool) -> Result<PathBuf, Str
             .map(drop)
     };
     result.map_err(|error| format!("{name}: {error}"))?;
+    crate::undo::record_add(&target);
     Ok(target)
 }
 
@@ -504,4 +511,17 @@ mod tests {
     fn trash_uris_escape_names() {
         assert_eq!(urlencode("Big storage#1.txt"), "Big%20storage%231.txt");
     }
+}
+
+/// Used by the journal: move without overwriting and without recording a new action.
+/// Keeps companion image annotations in sync, including across volumes.
+pub fn move_exact(from:&Path,to:&Path)->Result<(),String>{
+    if fs::symlink_metadata(to).is_ok(){return Err(format!("Undo destination already exists: {}",to.display()));}
+    if !from.exists(){return Err(format!("Undo source missing: {}",from.display()));}
+    let progress=Progress::default();
+    move_item(from,to,&progress).map_err(|e|e.to_string())?;
+    if from.is_file() || to.is_file() {
+        crate::image_metadata::move_sidecar(from,to).map_err(|e|e.to_string())?;
+    }
+    Ok(())
 }

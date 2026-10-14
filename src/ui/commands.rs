@@ -16,6 +16,7 @@ pub fn run(state: Explorer, command: Command) {
         || select(state, &command)
         || clipboard(state, &command)
         || files(state, &command)
+        || undo_commands(state, &command)
         || index_commands(state, &command)
         || extension_commands(state, &command)
         || trash(state, &command)
@@ -307,6 +308,23 @@ fn files(mut state: Explorer, command: &Command) -> bool {
         }
         _ => return false,
     }
+    true
+}
+
+fn undo_commands(mut state:Explorer,command:&Command)->bool {
+    let reverse=match command {
+        Command::Undo=>true,
+        Command::Redo=>false,
+        _=>return false,
+    };
+    spawn_forever(async move{
+        let result=tokio::task::spawn_blocking(move ||if reverse{crate::undo::undo()}else{crate::undo::redo()})
+            .await.unwrap_or_else(|e|Err(e.to_string()));
+        match result {
+            Ok(label)=>{state.revision+=1;state.notify(label,false);},
+            Err(e)=>state.notify(e,true),
+        }
+    });
     true
 }
 
