@@ -109,6 +109,9 @@ fn MasonryItems() -> Element {
     let current = state.index();
     let marks = state.marks.read();
     let height = geometry.height;
+    let viewport_height = state.layout().height;
+    let bar_height = (viewport_height / height * viewport_height).max(28.0);
+    let bar_top = if height > viewport_height {scroll / geometry.max_scroll(viewport_height) * (viewport_height - bar_height)} else {0.0};
     let style = format!("height:{height}px;top:-{scroll}px;position:relative;--zoom:{};", (state.zoom)());
     rsx! {
         Thumbnails {}
@@ -117,7 +120,7 @@ fn MasonryItems() -> Element {
             for index in indices {
                 if let (Some(entry),Some(rect)) = (entries.get(index),geometry.rects.get(index)) {
                     div { key: "{entry.uri()}", class: "gallery-masonry-slot",
-                        style: "left:{}px;top:{}px;width:{}px;height:{}px;", rect.x,rect.y,rect.w,rect.h,
+                        style: "left:{rect.x}px;top:{rect.y}px;width:{rect.w}px;height:{rect.h}px;",
                         Item {
                             entry: entry.clone(), index, view: View::Gallery,
                             cursor: index==current, marked: marks.contains(&entry.path),
@@ -129,10 +132,7 @@ fn MasonryItems() -> Element {
         }
         if height > state.layout().height {
             div { class: "scrollbar",
-                style: "height:{}px;top:{}px;",
-                    (state.layout().height / height * state.layout().height).max(28.0),
-                    scroll / geometry.max_scroll(state.layout().height) *
-                      (state.layout().height - (state.layout().height / height * state.layout().height).max(28.0))
+                style: "height:{bar_height}px;top:{bar_top}px;"
             }
         }
     }

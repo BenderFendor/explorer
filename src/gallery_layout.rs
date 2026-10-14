@@ -61,7 +61,7 @@ pub fn move_card(folder:&Path,file:&Path,x:f64,y:f64,width:f64)->std::io::Result
     let name=file.file_name().ok_or_else(||std::io::Error::other("Missing filename"))?.to_string_lossy().to_string();
     if !board.cards.iter().any(|c|c.file==name){board.cards.push(Card{file:name.clone(),..Card::default()});}
     let card=board.cards.iter_mut().find(|c|c.file==name).unwrap();
-    card.x=x.max(0.0).min(100000.0) as f32;card.y=y.max(0.0).min(100000.0) as f32;
+    card.x=x.clamp(0.0,100000.0) as f32;card.y=y.clamp(0.0,100000.0) as f32;
     card.width=width.clamp(80.0,2000.0) as f32;
     image_metadata::save_board(folder,&board)
 }
