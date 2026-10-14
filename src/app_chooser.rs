@@ -26,7 +26,7 @@ pub fn list(path:&Path)->Vec<App>{
                 let file=e.path();
                 if file.is_dir(){queue.push(file);continue;}
                 if file.extension().is_none_or(|x|x!="desktop"){continue;}
-                let Some(id)=file.strip_prefix(&root).ok().map(|p|p.to_string_lossy().replace('/','-')) else {continue;};
+                let Some(id)=file.strip_prefix(&root).ok().map(|p|p.to_string_lossy().replace('/',"-")) else {continue;};
                 if seen.contains(&id){continue;}
                 let Ok(text)=fs::read_to_string(&file) else{continue;};
                 let mut section=false;let mut name=None;let mut supported=false;let mut hidden=false;
